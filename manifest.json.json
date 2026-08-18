@@ -1,0 +1,21 @@
+{
+  "name": "TNC7 Partner",
+  "short_name": "TNC7",
+  "description": "TNC7 Partner Application",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#121212",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192/121212/FFFFFF?text=TNC7",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512/121212/FFFFFF?text=TNC7",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
