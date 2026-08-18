@@ -6,17 +6,18 @@
     <meta name="theme-color" content="#050505">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="TNC7 Partner">
-    <title>TNC7 Partner</title>
+    <meta name="apple-mobile-web-app-title" content="TNC7 Partner Report">
+    <title>TNC7 Partner Report</title>
     
-    <!-- Inline Web App Manifest via Data URI -->
-    <link rel="manifest" id="manifest-placeholder">
+    <!-- Link External Web App Manifest -->
+    <link rel="manifest" href="./manifest.json">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -25,6 +26,7 @@
             -webkit-user-select: none; /* Safari */
             -ms-user-select: none; /* IE 10 and IE 11 */
             user-select: none; /* Standard syntax */
+            font-weight: 500; 
         }
         .scanner-line {
             position: absolute;
@@ -60,20 +62,60 @@
             letter-spacing: 0.015em;
         }
         
-        body {
-            font-weight: 500; 
-        }
         .font-bold {
             font-weight: 800 !important;
         }
+
+        /* NEW UI STYLES */
+        .title-font { font-family: 'Rajdhani', sans-serif; }
+        .bg-grid {
+            background-size: 30px 30px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%);
+            -webkit-mask-image: radial-gradient(ellipse at center, black 60%, transparent 100%);
+        }
+        .glass-panel {
+            background: linear-gradient(135deg, rgba(20,20,20,0.4) 0%, rgba(5,5,5,0.7) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255,255,255,0.02);
+        }
+        .text-glow-cyan { text-shadow: 0 0 12px rgba(6, 182, 212, 0.8); }
+        .text-glow-red { text-shadow: 0 0 12px rgba(227, 27, 35, 0.8); }
+        .scanlines {
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.3));
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+        .btn-futuristic {
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-futuristic::after {
+            content: '';
+            position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+            opacity: 0; transform: scale(0.5); transition: opacity 0.3s, transform 0.3s;
+        }
+        .btn-futuristic:hover::after {
+            opacity: 1; transform: scale(1);
+        }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(6, 182, 212, 0.3); border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.6); }
     </style>
 </head>
-<body class="min-h-screen p-3 md:p-6 flex flex-col bg-[#050505] text-zinc-100 relative overflow-x-hidden selection:bg-cyan-500/30 text-crisp">
+<body class="min-h-screen p-3 md:p-6 flex flex-col bg-[#030305] text-zinc-100 relative overflow-x-hidden selection:bg-cyan-500/30 text-crisp">
 
-    <!-- Ambient Glowing Background -->
+    <!-- Ambient Tech Background -->
+    <div class="fixed inset-0 z-0 pointer-events-none bg-grid opacity-30"></div>
     <div class="fixed inset-0 z-0 pointer-events-none flex justify-center items-center overflow-hidden">
-        <div class="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-cyan-900/10 blur-[120px]"></div>
-        <div class="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-emerald-900/10 blur-[120px]"></div>
+        <div class="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-red-900/10 blur-[120px] animate-pulse"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-cyan-900/10 blur-[120px] animate-pulse" style="animation-delay: 1s;"></div>
     </div>
 
     <!-- MAIN DASHBOARD LAYOUT -->
@@ -82,38 +124,55 @@
         <!-- SIDEBAR -->
         <div class="w-full lg:w-1/3 xl:w-[400px] flex flex-col gap-5 md:gap-6 shrink-0">
             
-            <div class="bg-black/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl p-5 md:p-6 text-center relative overflow-hidden shrink-0 flex items-center justify-center flex-col group">
-                <div class="absolute inset-0 bg-gradient-to-r from-red-500/5 via-transparent to-cyan-500/5 opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
-                <h1 class="text-2xl md:text-3xl xl:text-4xl font-extrabold tracking-tighter relative z-10 mb-2">
-                    <span class="text-[#e31b23] drop-shadow-[0_2px_10px_rgba(227,27,35,0.3)]">TNC7</span> 
-                    <span class="text-zinc-100 ml-1 font-black">Partner</span>
+            <div class="glass-panel rounded-3xl p-5 md:p-6 text-center relative overflow-hidden flex-1 flex items-center justify-center flex-col group h-full">
+                <!-- Cyberpunk Corner Accents -->
+                <div class="absolute top-0 left-0 w-12 h-12 border-t-2 border-l-2 border-cyan-500/40 rounded-tl-3xl opacity-50 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                <div class="absolute bottom-0 right-0 w-12 h-12 border-b-2 border-r-2 border-cyan-500/40 rounded-br-3xl opacity-50 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
+                <div class="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-cyan-500/5 opacity-50 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                
+                <h1 class="text-3xl md:text-4xl xl:text-5xl font-bold tracking-wider relative z-10 mb-3 title-font uppercase">
+                    <span class="text-[#e31b23] text-glow-red">TNC7</span> 
+                    <span class="text-white text-glow-cyan ml-1">Partner Report</span>
                 </h1>
                 
                 <!-- INDIKATOR STATUS PERMANEN -->
-                <div id="batchStatusBadge" class="mb-4 inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-zinc-900/50 border border-zinc-700/50 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.5)] w-max mx-auto relative z-10 transition-all duration-300">
+                <div id="batchStatusBadge" class="mb-5 inline-flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900/70 border border-zinc-700/50 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.5)] w-max mx-auto relative z-10 transition-all duration-300">
                     <svg class="h-4 w-4 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    <span id="batchStatusText" class="text-xs font-bold text-zinc-400 tracking-wider uppercase">STANDBY - MENUNGGU FILE</span>
+                    <span id="batchStatusText" class="text-xs font-bold text-zinc-400 tracking-widest uppercase">STANDBY - SYSTEM READY</span>
                 </div>
 
-                <!-- TOMBOL INSTALL PWA (Muncul otomatis jika browser mendukung) -->
-                <button id="installAppBtn" class="hidden w-full max-w-[250px] mx-auto mb-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold py-2 px-4 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all flex items-center justify-center text-sm border border-white/10 hover:scale-105 active:scale-95 z-20 relative">
+                <!-- TOMBOL INSTALL PWA -->
+                <button id="installAppBtn" class="hidden w-full max-w-[250px] mx-auto mb-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all flex items-center justify-center text-sm border border-cyan-400/30 hover:border-cyan-400 hover:scale-105 active:scale-95 z-20 relative btn-futuristic">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    Install Aplikasi (PWA)
+                    Install HUD App
                 </button>
 
-                <div class="flex w-full flex-wrap items-center justify-between gap-2 mb-3 border-b border-white/5 pb-3 shrink-0">
-                    <div class="flex items-center gap-2">
-                        <div class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]"></div>
-                        <div class="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
-                        <div class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                        <span class="text-xs text-zinc-500 ml-2 terminal-text tracking-widest uppercase">V5_Quantum_Engine</span>
+                <!-- AI Log Terminal -->
+                <div class="relative flex flex-col flex-1 w-full mt-2 bg-[#09090b] border border-white/10 rounded-xl overflow-hidden shadow-[inset_0_0_20px_rgba(0,0,0,0.8)] text-left group min-h-[250px] lg:min-h-0">
+                    <div class="absolute inset-0 scanlines opacity-60 pointer-events-none"></div>
+                    
+                    <div class="bg-zinc-900/80 px-4 py-2 border-b border-white/10 flex items-center justify-between relative z-10 shrink-0">
+                        <div class="flex gap-2">
+                            <div class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></div>
+                        </div>
+                        <span class="text-[10px] text-zinc-500 font-mono tracking-widest uppercase flex items-center gap-2">
+                            <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span>
+                            Sys_Log
+                        </span>
+                    </div>
+                    
+                    <div class="relative flex-1 w-full overflow-hidden">
+                        <div id="aiLog" class="absolute inset-0 terminal-text text-[13px] leading-relaxed text-cyan-400 p-4 overflow-y-auto space-y-2 z-10 custom-scroll">
+                            <div><span class="text-emerald-500 mr-2 font-bold">➜</span> Sistem Aktif. Menunggu input visual atau data (XLSX).</div>
+                            <div><span class="text-emerald-500 mr-2 font-bold">➜</span> Algoritma neural dikunci untuk (IDR), (70%), (30%).</div>
+                            <div class="text-zinc-400"><span class="text-emerald-500 mr-2 font-bold">➜</span> Standby untuk ekstraksi sempurna.</div>
+                        </div>
                     </div>
                 </div>
-                <div id="aiLog" class="terminal-text text-sm text-cyan-400 flex-1 overflow-y-auto space-y-1.5 scroll-smooth pr-2">
-                    <div><span class="text-zinc-600 mr-2">➜</span> Sistem Siap. Menunggu input gambar atau file Excel (.xlsx).</div>
-                    <div><span class="text-zinc-600 mr-2">➜</span> Algoritma dikunci HANYA untuk "Partner Revenue (IDR)", "70%", dan "30%".</div>
-                    <div><span class="text-zinc-600 mr-2">➜</span> Format Asli, gaya sel, warna, dan struktur tabel dijamin utuh 100%.</div>
-                </div>
+
             </div>
 
         </div>
@@ -121,84 +180,97 @@
         <!-- PANEL KANAN: OUTPUT -->
         <div class="flex flex-col flex-1">
             
-            <div class="bg-zinc-900/30 backdrop-blur-md rounded-3xl shadow-2xl p-5 border border-white/5 flex flex-col flex-1 min-h-[60vh] lg:min-h-0 relative group transition-all hover:border-white/10">
-                <div class="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent rounded-3xl pointer-events-none"></div>
+            <div class="glass-panel rounded-3xl p-5 md:p-6 flex flex-col flex-1 min-h-[60vh] lg:min-h-0 relative group transition-all">
+                <div class="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-emerald-500/30 rounded-tr-3xl opacity-50 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                <div class="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-emerald-500/30 rounded-bl-3xl opacity-50 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
                 <div class="flex justify-between items-center mb-5 flex-wrap gap-4 relative z-10">
-                    <h2 class="text-lg font-bold text-zinc-100 flex items-center">
-                        <span class="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-xs mr-3 font-bold border border-emerald-500/20 tracking-wide shadow-[0_0_10px_rgba(16,185,129,0.2)]">OUTPUT</span> 
-                        Hasil 80/20 Perfect Clone
+                    <h2 class="text-lg md:text-xl font-bold text-zinc-100 flex items-center title-font tracking-wide">
+                        <span class="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-md text-xs mr-3 font-bold border border-emerald-500/30 tracking-widest shadow-[0_0_10px_rgba(16,185,129,0.3)]">OUTPUT_STREAM</span> 
+                        Visual Clone 80/20
                     </h2>
                     
-                    <div id="downloadContainer" class="hidden flex items-center gap-2 bg-black/50 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md shadow-xl">
-                        <input type="text" id="filenameInput" value="TNC7 Partner" class="bg-transparent border-none text-zinc-300 text-sm focus:ring-0 focus:outline-none px-3 w-32 md:w-40 placeholder-zinc-600 font-medium" placeholder="Nama file...">
+                    <div id="downloadContainer" class="hidden flex items-center gap-3 bg-black/60 p-2 rounded-xl border border-white/10 backdrop-blur-md shadow-2xl">
+                        <div class="relative">
+                            <input type="text" id="filenameInput" value="TNC7 Partner Report" class="bg-zinc-900/80 border border-zinc-700 text-cyan-300 text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none px-3 py-1.5 rounded-lg w-32 md:w-48 placeholder-zinc-600 font-mono transition-all" placeholder="File name...">
+                        </div>
                         
-                        <button onclick="downloadImageOutput()" class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-1.5 px-3 rounded-xl shadow-[0_0_15px_rgba(147,51,234,0.3)] transition-all flex items-center text-xs md:text-sm border border-white/10 hover:scale-105 active:scale-95" title="Download Screenshot Tabel">
-                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <button onclick="downloadImageOutput()" class="bg-gradient-to-r from-purple-700 to-blue-600 hover:from-purple-600 hover:to-blue-500 text-white font-bold py-2 px-4 rounded-lg shadow-[0_0_15px_rgba(147,51,234,0.4)] transition-all flex items-center text-xs md:text-sm border border-purple-400/30 hover:scale-105 active:scale-95 btn-futuristic" title="Download High-Res JPG">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                             JPG
                         </button>
 
-                        <button id="btnDownloadXlsx" onclick="downloadExcelOutput()" class="hidden bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-bold py-1.5 px-3 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all flex items-center text-xs md:text-sm border border-white/10 hover:scale-105 active:scale-95" title="Download File Excel Asli">
-                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <button id="btnDownloadXlsx" onclick="downloadExcelOutput()" class="hidden bg-gradient-to-r from-emerald-700 to-teal-600 hover:from-emerald-600 hover:to-teal-500 text-white font-bold py-2 px-4 rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all flex items-center text-xs md:text-sm border border-emerald-400/30 hover:scale-105 active:scale-95 btn-futuristic" title="Download Excel">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                             XLSX
                         </button>
                     </div>
                 </div>
 
-                <div class="relative flex-1 bg-black/40 border border-white/5 rounded-2xl flex items-center justify-center p-2 min-h-[50vh] overflow-hidden shadow-inner">
+                <div class="relative flex-1 bg-black/60 border border-white/10 rounded-xl flex items-center justify-center p-2 min-h-[50vh] max-h-[85vh] overflow-hidden shadow-[inset_0_0_30px_rgba(0,0,0,0.8)] z-10">
                     
-                    <div class="absolute inset-0 w-full h-full z-0 flex flex-col bg-[#0a0a0a] pointer-events-none rounded-xl overflow-hidden opacity-60">
-                        <div class="flex-1 overflow-hidden relative bg-[#0a0a0a]">
+                    <!-- Background Empty Grid -->
+                    <div class="absolute inset-0 w-full h-full z-0 flex flex-col bg-[#050505] pointer-events-none rounded-xl overflow-hidden opacity-40">
+                        <div class="flex-1 overflow-hidden relative bg-transparent">
                             <table id="emptyGridOutput" class="w-full text-xs text-left border-collapse table-fixed"></table>
-                        </div>
-                        <div class="flex items-center bg-[#111111] border-t border-zinc-800/80 text-[10px] shrink-0 h-7 px-2">
-                            <div class="bg-[#1a1a1a] px-3 h-full flex items-center text-zinc-500 border-x border-zinc-800/80 border-b-2 border-b-zinc-600 font-medium">Sheet1</div>
                         </div>
                     </div>
 
                     <!-- DROP ZONE & PENDING CONFIG STATE -->
-                    <div id="dropZone" class="absolute z-10 w-80 max-w-[90%] bg-black/80 backdrop-blur-md border-2 border-dashed border-zinc-700/50 rounded-2xl flex flex-col items-center justify-center p-8 transition-all hover:border-cyan-500/50 hover:bg-cyan-950/40 cursor-pointer shadow-2xl overflow-hidden">
+                    <div id="dropZone" class="absolute z-10 w-[90%] md:w-96 glass-panel border-2 border-dashed border-cyan-500/40 rounded-2xl flex flex-col items-center justify-center p-8 transition-all hover:border-cyan-400 hover:shadow-[0_0_40px_rgba(6,182,212,0.2)] hover:bg-cyan-950/20 cursor-pointer overflow-hidden group">
                         <input type="file" id="fileInput" accept="image/*, .xlsx, .xls" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30">
                         
                         <div id="uploadPrompt" class="flex flex-col items-center justify-center gap-4 z-10 pointer-events-none transition-transform group-hover:scale-105 text-center">
-                            <div class="bg-cyan-500/10 p-4 rounded-full border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-                                <svg class="h-8 w-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                            <div class="relative bg-cyan-500/10 p-5 rounded-xl border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                                <div class="absolute inset-0 bg-cyan-400/20 blur-xl rounded-full"></div>
+                                <svg class="h-10 w-10 text-cyan-400 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                             </div>
                             <div>
-                                <p class="text-zinc-50 font-black text-2xl tracking-wide drop-shadow-lg">Drop Excel / Gambar Disini</p>
-                                <p class="text-zinc-400 text-xs mt-1 font-medium">Pilih file untuk memulai</p>
+                                <p class="text-zinc-50 title-font font-bold text-2xl tracking-widest drop-shadow-lg uppercase">Initialize Upload</p>
+                                <p class="text-zinc-400 text-xs mt-2 font-mono tracking-wide">DRAG & DROP DATA MATRICES</p>
                             </div>
                         </div>
 
-                        <!-- PENDING STATE: Opsi Format Sebelum Eksekusi -->
-                        <div id="pendingState" class="hidden flex-col items-center justify-center gap-4 z-40 text-center relative pointer-events-auto w-full">
-                            <div class="bg-amber-500/10 p-4 rounded-full border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
-                                <svg class="h-8 w-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        <!-- PENDING STATE -->
+                        <div id="pendingState" class="hidden flex-col items-center justify-center gap-5 z-40 text-center relative pointer-events-auto w-full">
+                            <div class="bg-amber-500/10 p-4 rounded-xl border border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.2)] relative">
+                                <div class="absolute inset-0 bg-amber-400/20 blur-xl rounded-full"></div>
+                                <svg class="h-8 w-8 text-amber-400 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                             </div>
                             <div>
-                                <p id="pendingCountText" class="text-zinc-50 font-black text-2xl tracking-wide drop-shadow-lg">0 File Terdeteksi</p>
-                                <p class="text-zinc-400 text-xs mt-1 font-medium">Pilih format unduhan di bawah</p>
+                                <p id="pendingCountText" class="text-zinc-50 title-font font-bold text-2xl tracking-widest drop-shadow-lg uppercase">0 Files Detected</p>
+                                <p class="text-zinc-400 text-xs mt-1 font-mono">SELECT EXTRACTION FORMAT</p>
                             </div>
                             
-                            <div class="flex flex-col gap-2.5 mt-1 w-full max-w-xs">
-                                <div class="flex items-center justify-center gap-4 text-xs font-bold text-zinc-300 bg-black/40 p-2.5 rounded-xl border border-white/10 shadow-inner">
-                                    <label class="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors" title="Simpan sebagai gambar JPG Resolusi Tinggi">
-                                        <input type="radio" name="batchFormat" value="jpg" checked class="w-3.5 h-3.5 text-purple-500 bg-zinc-900 border-zinc-700 focus:ring-purple-500 focus:ring-offset-zinc-900">
-                                        <span>Output JPG</span>
+                            <div class="flex flex-col gap-2.5 mt-2 w-full max-w-xs">
+                                <div class="flex items-center justify-center gap-6 text-sm font-bold text-zinc-300 bg-black/60 p-3 rounded-xl border border-white/10 shadow-inner">
+                                    <label class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors group">
+                                        <div class="relative flex items-center justify-center">
+                                            <input type="checkbox" name="batchFormat" value="jpg" checked class="peer sr-only">
+                                            <div class="w-4 h-4 rounded border-2 border-zinc-500 peer-checked:border-purple-500 peer-checked:bg-purple-500 transition-all shadow-[0_0_10px_rgba(168,85,247,0.5)] flex items-center justify-center">
+                                                <svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                            </div>
+                                        </div>
+                                        <span>JPG</span>
                                     </label>
-                                    <label class="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors" title="Simpan sebagai file Excel">
-                                        <input type="radio" name="batchFormat" value="xlsx" class="w-3.5 h-3.5 text-emerald-500 bg-zinc-900 border-zinc-700 focus:ring-emerald-500 focus:ring-offset-zinc-900">
-                                        <span>Output EXCEL</span>
+                                    <label class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors group">
+                                        <div class="relative flex items-center justify-center">
+                                            <input type="checkbox" name="batchFormat" value="xlsx" class="peer sr-only">
+                                            <div class="w-4 h-4 rounded border-2 border-zinc-500 peer-checked:border-emerald-500 peer-checked:bg-emerald-500 transition-all shadow-[0_0_10px_rgba(16,185,129,0.5)] flex items-center justify-center">
+                                                <svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                            </div>
+                                        </div>
+                                        <span>XLSX</span>
                                     </label>
                                 </div>
                             </div>
 
-                            <div class="flex items-center gap-3 mt-1">
-                                <button onclick="cancelPending()" class="px-4 py-2 bg-zinc-800/80 hover:bg-red-900/40 border border-zinc-700/50 hover:border-red-500/50 rounded-xl text-xs text-zinc-300 hover:text-red-400 transition-all font-bold shadow-sm">
-                                    Batal
+                            <div class="flex items-center gap-3 mt-2 w-full max-w-xs">
+                                <button onclick="cancelPending()" class="flex-1 py-2.5 bg-zinc-800/80 hover:bg-red-900/40 border border-zinc-700/50 hover:border-red-500/50 rounded-xl text-xs text-zinc-300 hover:text-red-400 transition-all font-bold shadow-sm uppercase tracking-wide">
+                                    Abort
                                 </button>
-                                <button onclick="startProcessing()" class="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-black py-2.5 px-6 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all flex items-center text-sm border border-white/10 hover:scale-105 active:scale-95 cursor-pointer">
-                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
-                                    MULAI PROSES
+                                <button onclick="startProcessing()" class="flex-[2] bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-black py-2.5 px-4 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all flex items-center justify-center text-xs md:text-sm border border-amber-400/30 hover:scale-105 active:scale-95 cursor-pointer uppercase tracking-widest btn-futuristic">
+                                    Execute
                                 </button>
                             </div>
                         </div>
@@ -213,12 +285,12 @@
                     
                     <canvas id="canvas2" class="hidden shadow-2xl relative z-20 w-full h-full object-contain rounded-xl bg-white"></canvas>
                     
-                    <div id="excelOutputWrapper" class="hidden absolute inset-0 z-20 overflow-hidden rounded-xl border border-[#107c41]/30 shadow-2xl bg-white flex items-center justify-center">
-                        <div id="excelOutput" class="flex flex-col bg-white overflow-hidden origin-center relative" style="width: 1920px; height: 1080px; min-width: 1920px; min-height: 1080px;">
+                    <div id="excelOutputWrapper" class="hidden absolute inset-2 z-20 overflow-hidden rounded-xl border border-[#107c41]/50 shadow-[0_0_30px_rgba(16,124,65,0.3)] bg-[#e6e6e6] flex items-center justify-center">
+                        <div id="excelOutput" class="flex flex-col bg-white overflow-hidden origin-center relative transition-transform duration-200" style="width: 1920px; height: 1080px; min-width: 1920px; min-height: 1080px;">
                             
-                            <!-- WATERMARK TNC7 MEMBER -->
+                            <!-- WATERMARK TNC7 PARTNER REPORT -->
                             <div class="absolute bottom-16 right-10 z-50 pointer-events-none opacity-70 select-none">
-                                <span class="text-4xl font-black text-zinc-400 tracking-widest uppercase" style="font-family: 'Arial Black', 'Segoe UI Black', sans-serif;">TNC7 Member</span>
+                                <span class="text-4xl font-black text-zinc-400 tracking-widest uppercase" style="font-family: 'Arial Black', 'Segoe UI Black', sans-serif;">TNC7 Partner Report</span>
                             </div>
 
                             <div class="flex items-center justify-between bg-[#107c41] border-b border-[#0c5c30] p-3 shrink-0">
@@ -226,7 +298,7 @@
                                     <div class="bg-white/20 p-1.5 rounded shadow-sm shrink-0">
                                         <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     </div>
-                                    <p class="text-white font-bold text-sm tracking-wide leading-none">Sukses Diinjeksi (80/20)</p>
+                                    <p class="text-white font-bold text-sm tracking-wide leading-none">Extraction Complete (80/20)</p>
                                 </div>
                             </div>
                             
@@ -552,7 +624,12 @@
             const time = new Date().toLocaleTimeString('id-ID', { hour12: false });
             div.innerHTML = `<span class="text-zinc-600 mr-2">[${time}]</span> ${msg}`;
             terminal.appendChild(div);
+            
+            // Auto scroll instan khusus untuk kotak terminal saja, tanpa men-scroll halaman/kanvas
             terminal.scrollTop = terminal.scrollHeight;
+            setTimeout(() => {
+                if (terminal) terminal.scrollTop = terminal.scrollHeight;
+            }, 0);
         }
 
         function formatRupiah(angka) {
@@ -683,17 +760,22 @@
             let excelFiles = Array.from(fileList).filter(f => f.name.toLowerCase().endsWith('.xlsx') || f.name.toLowerCase().endsWith('.xls'));
             let otherFiles = fileList.length - excelFiles.length;
 
+            // Memastikan mode disetel ke excel agar fungsi adjustScale() dapat mengecilkan preview
+            outputMode = 'excel';
+
             log(`<span class="text-yellow-400 font-bold">⚡ MODE BATCH AKTIF:</span> Memproses ${excelFiles.length} file Excel secara otomatis...`);
             if (otherFiles > 0) {
                 log(`<span class='text-red-400'>Mengabaikan ${otherFiles} file non-Excel dalam antrean.</span>`);
             }
 
-            document.getElementById('dropZone').classList.remove('hidden');
+            // Sembunyikan dropZone agar preview data terlihat
+            document.getElementById('dropZone').classList.add('hidden');
             document.getElementById('uploadPrompt').classList.add('hidden');
             document.getElementById('scanLine').style.display = 'block';
 
-            if (document.getElementById('excelOutputWrapper')) document.getElementById('excelOutputWrapper').classList.add('hidden');
-            if (document.getElementById('excelOutput')) document.getElementById('excelOutput').classList.add('hidden');
+            // Tampilkan wrapper excel untuk memunculkan preview real-time
+            if (document.getElementById('excelOutputWrapper')) document.getElementById('excelOutputWrapper').classList.remove('hidden');
+            if (document.getElementById('excelOutput')) document.getElementById('excelOutput').classList.remove('hidden');
             if (document.getElementById('canvas2')) document.getElementById('canvas2').classList.add('hidden');
             document.getElementById('downloadContainer').classList.add('hidden');
 
@@ -777,28 +859,33 @@
                         });
 
                         let baseFilename = file.name.replace(/\.[^/.]+$/, "").replace(/Report\s*YT|Report_YT/gi, '').replace(/[()]/g, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim() || 'Laporan';
-                        
-                        const batchFormat = document.querySelector('input[name="batchFormat"]:checked')?.value || 'xlsx';
-                        
-                        // Format khusus JPG: sisakan nama saja (hapus bulan dan angka di akhir)
-                        if (batchFormat === 'jpg') {
-                            const monthRegex = /[_\s]?(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|january|february|march|may|june|july|august|october|december)[_\s\d]*$/i;
-                            baseFilename = baseFilename.replace(monthRegex, '');
-                            baseFilename = baseFilename.replace(/[_\s][0-9]{2,4}$/, '').trim();
-                        }
-
                         baseFilename = baseFilename.replace(/_/g, ' ');
 
-                        let defaultFilename = baseFilename;
+                        const selectedFormats = Array.from(document.querySelectorAll('input[name="batchFormat"]:checked')).map(el => el.value);
+                        let wantJpg = selectedFormats.includes('jpg');
+                        let wantXlsx = selectedFormats.includes('xlsx');
                         
-                        if (batchFormat === 'xlsx') {
+                        // Default Fallback jika tidak ada yang dicentang
+                        if (!wantJpg && !wantXlsx) wantJpg = true; 
+                        
+                        let jpgFilename = baseFilename;
+                        const monthRegex = /[_\s]?(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|january|february|march|may|june|july|august|october|december)[_\s\d]*$/i;
+                        jpgFilename = jpgFilename.replace(monthRegex, '');
+                        jpgFilename = jpgFilename.replace(/[_\s][0-9]{2,4}$/, '').trim();
+                        
+                        // --- Tampilkan ke layar UI secara real-time ---
+                        renderExactExcelTable(targetSheet, 'excelPreviewTable');
+                        adjustScale();
+                        // ---------------------------------------------
+                        
+                        if (wantXlsx) {
                             const outputBuffer = await workbook.xlsx.writeBuffer();
                             const blob = new Blob([outputBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                            await saveFileHelper(blob, defaultFilename + '.xlsx');
+                            await saveFileHelper(blob, baseFilename + '.xlsx');
                             log(`  <span class='text-emerald-400'>➜ Excel Tersimpan.</span>`);
-                        } else if (batchFormat === 'jpg') {
-                            renderExactExcelTable(targetSheet, 'excelPreviewTable');
-                            
+                        }
+                        
+                        if (wantJpg) {
                             const containerToCapture = document.getElementById('excelOutput');
                             
                             const printContainer = document.createElement('div');
@@ -811,6 +898,8 @@
                             uiClone.classList.remove('hidden', 'absolute', 'inset-0', 'shadow-2xl', 'rounded-xl', 'border', 'border-[#107c41]/30', 'overflow-hidden');
                             uiClone.style.transform = 'none';
                             uiClone.style.position = 'relative';
+                            uiClone.style.left = '0';
+                            uiClone.style.top = '0';
                             uiClone.style.display = 'flex';
                             uiClone.style.flexDirection = 'column';
                             uiClone.style.alignItems = 'stretch';
@@ -897,7 +986,7 @@
                             document.body.removeChild(printContainer);
                             
                             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
-                            await saveFileHelper(blob, defaultFilename + '.jpg');
+                            await saveFileHelper(blob, jpgFilename + '.jpg');
                             log(`  <span class='text-purple-400'>➜ JPG Tersimpan.</span>`);
                         }
 
@@ -915,6 +1004,11 @@
             document.getElementById('scanLine').style.display = 'none';
             log(`<span class='text-emerald-400 font-bold text-lg'>✅ SUKSES: Semua file batch telah dikerjakan!</span>`);
             
+            // Kembalikan UI ke mode dropzone setelah semua selesai
+            document.getElementById('dropZone').classList.remove('hidden');
+            if (document.getElementById('excelOutputWrapper')) document.getElementById('excelOutputWrapper').classList.add('hidden');
+            if (document.getElementById('excelOutput')) document.getElementById('excelOutput').classList.add('hidden');
+
             if (badge) {
                 badge.className = "mb-4 inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-emerald-950/50 border border-emerald-500/50 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.3)] w-max mx-auto relative z-10 transition-all duration-300";
                 if (badgeIcon) {
@@ -1039,7 +1133,7 @@
                     baseFilename = baseFilename.replace(monthRegex, '');
                     baseFilename = baseFilename.replace(/[_\s][0-9]{2,4}$/, '').trim();
                     
-                    let defaultFilename = (baseFilename || 'TNC7 Partner');
+                    let defaultFilename = (baseFilename || 'TNC7 Partner Report');
                     
                     document.getElementById('filenameInput').value = defaultFilename;
 
@@ -1155,7 +1249,7 @@
         function processPixelPerfect(words, imgElement) {
             log("> Menganalisis Zona Fokus: (IDR), (70%), dan (30%)...");
 
-            let defaultFilename = "TNC7 Partner";
+            let defaultFilename = "TNC7 Partner Report";
             let partnerWords = words.filter(w => w.text.trim().toLowerCase() === 'partner');
             partnerWords.sort((a, b) => a.centerY - b.centerY); 
             let partnerLabel = partnerWords.length > 0 ? partnerWords[0] : null;
@@ -1180,7 +1274,7 @@
                         defaultFilename = defaultFilename.replace(monthRegex, '');
                         defaultFilename = defaultFilename.replace(/[_\s][0-9]{2,4}$/, '').trim();
                         
-                        if(!defaultFilename) defaultFilename = "TNC7 Partner";
+                        if(!defaultFilename) defaultFilename = "TNC7 Partner Report";
                     }
                 }
             }
@@ -1293,7 +1387,7 @@
             ctx2.fillStyle = "rgba(100, 100, 100, 0.85)";
             ctx2.textAlign = "right";
             ctx2.textBaseline = "bottom";
-            ctx2.fillText("TNC7 MEMBER", canvas2.width - (wmSize), canvas2.height - (wmSize));
+            ctx2.fillText("TNC7 PARTNER REPORT", canvas2.width - (wmSize), canvas2.height - (wmSize));
             ctx2.restore();
 
             log("<span class='text-emerald-400 font-bold'>SUKSES: Perfect Clone V5 Selesai! Silakan simpan.</span>");
@@ -1307,7 +1401,7 @@
         }
 
         async function downloadImageOutput() {
-            let filename = document.getElementById('filenameInput').value.trim() || 'TNC7 Partner';
+            let filename = document.getElementById('filenameInput').value.trim() || 'TNC7 Partner Report';
             filename = filename.replace(/Report\s*YT|Report_YT/gi, '').replace(/[()]/g, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
             
             // Format khusus JPG: sisakan nama saja (hapus bulan dan angka tahun)
@@ -1315,7 +1409,7 @@
             filename = filename.replace(monthRegex, '');
             filename = filename.replace(/[_\s][0-9]{2,4}$/, '').trim();
             
-            if (!filename) filename = 'TNC7 Partner';
+            if (!filename) filename = 'TNC7 Partner Report';
             const filenameFull = filename + '.jpg';
 
             if (outputMode === 'image') {
@@ -1365,6 +1459,8 @@
                     uiClone.classList.remove('hidden', 'absolute', 'inset-0', 'shadow-2xl', 'rounded-xl', 'border', 'border-[#107c41]/30', 'overflow-hidden');
                     uiClone.style.transform = 'none';
                     uiClone.style.position = 'relative';
+                    uiClone.style.left = '0';
+                    uiClone.style.top = '0';
                     uiClone.style.display = 'flex';
                     uiClone.style.flexDirection = 'column';
                     uiClone.style.alignItems = 'stretch';
@@ -1466,10 +1562,10 @@
             if (outputMode !== 'excel' || !currentExcelBlob) return;
             
             let filename = document.getElementById('filenameInput').value.trim();
-            if (!filename) filename = 'TNC7 Partner';
+            if (!filename) filename = 'TNC7 Partner Report';
             
             filename = filename.replace(/Report\s*YT|Report_YT/gi, '').replace(/[()]/g, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
-            if (!filename) filename = 'TNC7 Partner';
+            if (!filename) filename = 'TNC7 Partner Report';
 
             await saveFileHelper(currentExcelBlob, filename + '.xlsx');
             log(`> <span class="text-emerald-400 font-bold">File Excel sukses disimpan: ${filename}.xlsx</span>`);
@@ -1483,21 +1579,35 @@
             const table = document.getElementById('excelPreviewTable');
             if (!wrapper || !content || !table) return;
             
+            // Dapatkan dimensi wadah yang membatasi
+            const wrapperRect = wrapper.getBoundingClientRect();
+            if (wrapperRect.width === 0 || wrapperRect.height === 0) return; // Jika disembunyikan
+            
+            // Hitung ukuran yang dibutuhkan berdasarkan tabel (plus margin/header)
             const neededWidth = Math.max(800, table.scrollWidth + 100);
             const neededHeight = Math.max(600, table.scrollHeight + 150);
             
+            // Tetapkan dimensi target tetap agar render konsisten
             content.style.width = neededWidth + 'px';
             content.style.height = neededHeight + 'px';
             content.style.minWidth = neededWidth + 'px';
             content.style.minHeight = neededHeight + 'px';
 
-            const wrapperRect = wrapper.getBoundingClientRect();
+            // Hitung rasio untuk menyesuaikan ke dalam wadah layar
             const scaleX = wrapperRect.width / neededWidth;
             const scaleY = wrapperRect.height / neededHeight;
+            // Ambil skala terkecil agar pas, dan kurangi sedikit (0.95) untuk padding visual
             const scale = Math.min(scaleX, scaleY) * 0.95; 
 
+            // Terapkan skala CSS
             content.style.transform = `scale(${scale})`;
             content.style.transformOrigin = 'center';
+            
+            // Penting: Cegah kontainer menabrak batas dengan menetapkan batas atas/bawah absolut
+            content.style.position = 'absolute';
+            content.style.left = '50%';
+            content.style.top = '50%';
+            content.style.transform = `translate(-50%, -50%) scale(${scale})`;
         }
 
         window.addEventListener('resize', () => {
@@ -1544,35 +1654,6 @@
             }
         });
 
-        const manifestData = {
-            "name": "TNC7 Partner Dashboard",
-            "short_name": "TNC7 Partner",
-            "start_url": ".",
-            "display": "standalone",
-            "background_color": "#050505",
-            "theme_color": "#050505",
-            "description": "Alat kalkulasi otomatis untuk partner TNC7.",
-            "icons": [
-                {
-                    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzA1MDUwNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkeT0iLjM1ZW0iIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMzUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZTMxYjIzIj5UTkM3PC90ZXh0Pjwvc3ZnPg==",
-                    "sizes": "192x192",
-                    "type": "image/svg+xml",
-                    "purpose": "any maskable"
-                },
-                {
-                    "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iIzA1MDUwNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkeT0iLjM1ZW0iIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtc2l6ZT0iMzUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjZTMxYjIzIj5UTkM3PC90ZXh0Pjwvc3ZnPg==",
-                    "sizes": "512x512",
-                    "type": "image/svg+xml",
-                    "purpose": "any maskable"
-                }
-            ]
-        };
-
-        // Inject Manifest directly via URL Encoding to ensure browser reads it instantly
-        const manifestString = JSON.stringify(manifestData);
-        const encodedManifest = encodeURIComponent(manifestString);
-        document.getElementById('manifest-placeholder').setAttribute('href', 'data:application/manifest+json;charset=utf-8,' + encodedManifest);
-
         // PWA Install Button Logic
         let deferredPrompt;
         const installAppBtn = document.getElementById('installAppBtn');
@@ -1606,21 +1687,11 @@
             console.log('PWA berhasil diinstal!');
         });
 
+        // Register External Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                const swCode = `
-                    const CACHE_NAME = 'tnc7-pwa-v2';
-                    self.addEventListener('install', event => self.skipWaiting());
-                    self.addEventListener('activate', event => event.waitUntil(clients.claim()));
-                    self.addEventListener('fetch', event => {
-                        event.respondWith(fetch(event.request).catch(() => new Response("Offline Mode")));
-                    });
-                `;
-                const swBlob = new Blob([swCode], {type: 'application/javascript'});
-                const swUrl = URL.createObjectURL(swBlob);
-
-                navigator.serviceWorker.register(swUrl)
-                    .then(registration => console.log('ServiceWorker PWA Aktif.'))
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => console.log('ServiceWorker PWA Aktif dengan scope:', registration.scope))
                     .catch(err => console.log('ServiceWorker Gagal: ', err));
             });
         }
