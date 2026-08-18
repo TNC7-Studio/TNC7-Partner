@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TNC7 Partner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050505;
+            color: #f4f4f5;
+            -webkit-user-select: none; /* Safari */
+            -ms-user-select: none; /* IE 10 and IE 11 */
+            user-select: none; /* Standard syntax */
+        }
+        .scanner-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #06b6d4, transparent);
+            box-shadow: 0 0 15px 2px rgba(6, 182, 212, 0.8), 0 0 30px 5px rgba(6, 182, 212, 0.4);
+            animation: scan 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            display: none;
+            z-index: 20;
+            pointer-events: none;
+        }
+        @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        .terminal-text {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; border: 2px solid #050505; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+        .text-crisp {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            letter-spacing: 0.015em;
+        }
+        
+        body {
+            font-weight: 500; 
+        }
+        .font-bold {
+            font-weight: 800 !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-3 md:p-6 flex flex-col bg-[#050505] text-zinc-100 relative overflow-x-hidden selection:bg-cyan-500/30 text-crisp">
+
+    <!-- Ambient Glowing Background -->
+    <div class="fixed inset-0 z-0 pointer-events-none flex justify-center items-center overflow-hidden">
+        <div class="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] rounded-full bg-cyan-900/10 blur-[120px]"></div>
+        <div class="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-emerald-900/10 blur-[120px]"></div>
+    </div>
+
+    <!-- MAIN DASHBOARD LAYOUT -->
+    <div class="w-full flex-1 flex flex-col lg:flex-row gap-5 md:gap-6 relative z-10">
+        
+        <!-- SIDEBAR -->
+        <div class="w-full lg:w-1/3 xl:w-[400px] flex flex-col gap-5 md:gap-6 shrink-0">
+            
+            <div class="bg-black/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl p-5 md:p-6 text-center relative overflow-hidden shrink-0 flex items-center justify-center flex-col group">
+                <div class="absolute inset-0 bg-gradient-to-r from-red-500/5 via-transparent to-cyan-500/5 opacity-50 group-hover:opacity-100 transition-opacity duration-700"></div>
+                <h1 class="text-2xl md:text-3xl xl:text-4xl font-extrabold tracking-tighter relative z-10 mb-2">
+                    <span class="text-[#e31b23] drop-shadow-[0_2px_10px_rgba(227,27,35,0.3)]">TNC7</span> 
+                    <span class="text-zinc-100 ml-1 font-black">Partner</span>
+                </h1>
+                
+                <!-- INDIKATOR STATUS PERMANEN -->
+                <div id="batchStatusBadge" class="mb-4 inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-zinc-900/50 border border-zinc-700/50 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.5)] w-max mx-auto relative z-10 transition-all duration-300">
+                    <svg class="h-4 w-4 text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <span id="batchStatusText" class="text-xs font-bold text-zinc-400 tracking-wider uppercase">STANDBY - MENUNGGU FILE</span>
+                </div>
+
+                <div class="flex w-full flex-wrap items-center justify-between gap-2 mb-3 border-b border-white/5 pb-3 shrink-0">
+                    <div class="flex items-center gap-2">
+                        <div class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]"></div>
+                        <div class="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
+                        <div class="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                        <span class="text-xs text-zinc-500 ml-2 terminal-text tracking-widest uppercase">V5_Quantum_Engine</span>
+                    </div>
+                </div>
+                <div id="aiLog" class="terminal-text text-sm text-cyan-400 flex-1 overflow-y-auto space-y-1.5 scroll-smooth pr-2">
+                    <div><span class="text-zinc-600 mr-2">➜</span> Sistem Siap. Menunggu input gambar atau file Excel (.xlsx).</div>
+                    <div><span class="text-zinc-600 mr-2">➜</span> Algoritma dikunci HANYA untuk "Partner Revenue (IDR)", "70%", dan "30%".</div>
+                    <div><span class="text-zinc-600 mr-2">➜</span> Format Asli, gaya sel, warna, dan struktur tabel dijamin utuh 100%.</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- PANEL KANAN: OUTPUT -->
+        <div class="flex flex-col flex-1">
+            
+            <div class="bg-zinc-900/30 backdrop-blur-md rounded-3xl shadow-2xl p-5 border border-white/5 flex flex-col flex-1 min-h-[60vh] lg:min-h-0 relative group transition-all hover:border-white/10">
+                <div class="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent rounded-3xl pointer-events-none"></div>
+                <div class="flex justify-between items-center mb-5 flex-wrap gap-4 relative z-10">
+                    <h2 class="text-lg font-bold text-zinc-100 flex items-center">
+                        <span class="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-xs mr-3 font-bold border border-emerald-500/20 tracking-wide shadow-[0_0_10px_rgba(16,185,129,0.2)]">OUTPUT</span> 
+                        Hasil 80/20 Perfect Clone
+                    </h2>
+                    
+                    <div id="downloadContainer" class="hidden flex items-center gap-2 bg-black/50 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md shadow-xl">
+                        <input type="text" id="filenameInput" value="TNC7 Partner" class="bg-transparent border-none text-zinc-300 text-sm focus:ring-0 focus:outline-none px-3 w-32 md:w-40 placeholder-zinc-600 font-medium" placeholder="Nama file...">
+                        
+                        <button onclick="downloadImageOutput()" class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold py-1.5 px-3 rounded-xl shadow-[0_0_15px_rgba(147,51,234,0.3)] transition-all flex items-center text-xs md:text-sm border border-white/10 hover:scale-105 active:scale-95" title="Download Screenshot Tabel">
+                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            JPG
+                        </button>
+
+                        <button id="btnDownloadXlsx" onclick="downloadExcelOutput()" class="hidden bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-bold py-1.5 px-3 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all flex items-center text-xs md:text-sm border border-white/10 hover:scale-105 active:scale-95" title="Download File Excel Asli">
+                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            XLSX
+                        </button>
+                    </div>
+                </div>
+
+                <div class="relative flex-1 bg-black/40 border border-white/5 rounded-2xl flex items-center justify-center p-2 min-h-[50vh] overflow-hidden shadow-inner">
+                    
+                    <div class="absolute inset-0 w-full h-full z-0 flex flex-col bg-[#0a0a0a] pointer-events-none rounded-xl overflow-hidden opacity-60">
+                        <div class="flex-1 overflow-hidden relative bg-[#0a0a0a]">
+                            <table id="emptyGridOutput" class="w-full text-xs text-left border-collapse table-fixed"></table>
+                        </div>
+                        <div class="flex items-center bg-[#111111] border-t border-zinc-800/80 text-[10px] shrink-0 h-7 px-2">
+                            <div class="bg-[#1a1a1a] px-3 h-full flex items-center text-zinc-500 border-x border-zinc-800/80 border-b-2 border-b-zinc-600 font-medium">Sheet1</div>
+                        </div>
+                    </div>
+
+                    <!-- DROP ZONE & PENDING CONFIG STATE -->
+                    <div id="dropZone" class="absolute z-10 w-80 max-w-[90%] bg-black/80 backdrop-blur-md border-2 border-dashed border-zinc-700/50 rounded-2xl flex flex-col items-center justify-center p-8 transition-all hover:border-cyan-500/50 hover:bg-cyan-950/40 cursor-pointer shadow-2xl overflow-hidden">
+                        <input type="file" id="fileInput" accept="image/*, .xlsx, .xls" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-30">
+                        
+                        <div id="uploadPrompt" class="flex flex-col items-center justify-center gap-4 z-10 pointer-events-none transition-transform group-hover:scale-105 text-center">
+                            <div class="bg-cyan-500/10 p-4 rounded-full border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                                <svg class="h-8 w-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                            </div>
+                            <div>
+                                <p class="text-zinc-50 font-black text-2xl tracking-wide drop-shadow-lg">Drop Excel / Gambar Disini</p>
+                                <p class="text-zinc-400 text-xs mt-1 font-medium">Pilih file untuk memulai</p>
+                            </div>
+                        </div>
+
+                        <!-- PENDING STATE: Opsi Format Sebelum Eksekusi -->
+                        <div id="pendingState" class="hidden flex-col items-center justify-center gap-4 z-40 text-center relative pointer-events-auto w-full">
+                            <div class="bg-amber-500/10 p-4 rounded-full border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                                <svg class="h-8 w-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            </div>
+                            <div>
+                                <p id="pendingCountText" class="text-zinc-50 font-black text-2xl tracking-wide drop-shadow-lg">0 File Terdeteksi</p>
+                                <p class="text-zinc-400 text-xs mt-1 font-medium">Pilih format unduhan di bawah</p>
+                            </div>
+                            
+                            <div class="flex flex-col gap-2.5 mt-1 w-full max-w-xs">
+                                <div class="flex items-center justify-center gap-4 text-xs font-bold text-zinc-300 bg-black/40 p-2.5 rounded-xl border border-white/10 shadow-inner">
+                                    <label class="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors" title="Simpan sebagai gambar JPG Resolusi Tinggi">
+                                        <input type="radio" name="batchFormat" value="jpg" checked class="w-3.5 h-3.5 text-purple-500 bg-zinc-900 border-zinc-700 focus:ring-purple-500 focus:ring-offset-zinc-900">
+                                        <span>Output JPG</span>
+                                    </label>
+                                    <label class="flex items-center gap-1.5 cursor-pointer hover:text-white transition-colors" title="Simpan sebagai file Excel">
+                                        <input type="radio" name="batchFormat" value="xlsx" class="w-3.5 h-3.5 text-emerald-500 bg-zinc-900 border-zinc-700 focus:ring-emerald-500 focus:ring-offset-zinc-900">
+                                        <span>Output EXCEL</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3 mt-1">
+                                <button onclick="cancelPending()" class="px-4 py-2 bg-zinc-800/80 hover:bg-red-900/40 border border-zinc-700/50 hover:border-red-500/50 rounded-xl text-xs text-zinc-300 hover:text-red-400 transition-all font-bold shadow-sm">
+                                    Batal
+                                </button>
+                                <button onclick="startProcessing()" class="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-black py-2.5 px-6 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.4)] transition-all flex items-center text-sm border border-white/10 hover:scale-105 active:scale-95 cursor-pointer">
+                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                                    MULAI PROSES
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="scanLine" class="scanner-line"></div>
+                        
+                        <canvas id="canvas1" class="hidden"></canvas>
+                        <div id="excelInput" class="hidden"><table id="excelInputPreviewTable"></table></div>
+                    </div>
+
+                    <div id="outputPrompt" class="hidden"></div>
+                    
+                    <canvas id="canvas2" class="hidden shadow-2xl relative z-20 w-full h-full object-contain rounded-xl bg-white"></canvas>
+                    
+                    <div id="excelOutputWrapper" class="hidden absolute inset-0 z-20 overflow-hidden rounded-xl border border-[#107c41]/30 shadow-2xl bg-white flex items-center justify-center">
+                        <div id="excelOutput" class="flex flex-col bg-white overflow-hidden origin-center relative" style="width: 1920px; height: 1080px; min-width: 1920px; min-height: 1080px;">
+                            
+                            <!-- WATERMARK TNC7 MEMBER -->
+                            <div class="absolute bottom-16 right-10 z-50 pointer-events-none opacity-70 select-none">
+                                <span class="text-4xl font-black text-zinc-400 tracking-widest uppercase" style="font-family: 'Arial Black', 'Segoe UI Black', sans-serif;">TNC7 Member</span>
+                            </div>
+
+                            <div class="flex items-center justify-between bg-[#107c41] border-b border-[#0c5c30] p-3 shrink-0">
+                                <div class="flex items-center gap-2">
+                                    <div class="bg-white/20 p-1.5 rounded shadow-sm shrink-0">
+                                        <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    </div>
+                                    <p class="text-white font-bold text-sm tracking-wide leading-none">Sukses Diinjeksi (80/20)</p>
+                                </div>
+                            </div>
+                            
+                            <div class="w-full flex-1 overflow-auto bg-white" style="text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
+                                <table id="excelPreviewTable" class="w-full text-lg text-left text-black border-collapse">
+                                </table>
+                            </div>
+
+                            <div class="flex items-center bg-[#f3f2f1] border-t border-[#c8c6c4] text-xs shrink-0 h-10 px-2">
+                                <div class="bg-white px-6 h-full flex items-center text-[#107c41] border-x border-[#c8c6c4] border-b-2 border-b-[#107c41] font-bold cursor-default">Hasil_80_20</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
+        const terminal = document.getElementById('aiLog');
+        let outputMode = 'image';
+        let excelBlobUrl = null;
+        let currentExcelBlob = null; 
+        let outputDirHandle = null;  
+
+        async function selectOutputFolder() {
+            try {
+                if (!window.showDirectoryPicker) return null;
+                
+                // Mencegah SecurityError jika dijalankan di dalam iFrame (Preview Environment)
+                if (window.self !== window.top) {
+                    console.warn("Folder picker API tidak diizinkan di dalam iFrame (Preview). Beralih ke unduhan biasa.");
+                    return null;
+                }
+
+                outputDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                log(`> Folder Auto-Save diatur ke: <span class="text-cyan-400 font-bold">[ ${outputDirHandle.name} ]</span>`);
+                return outputDirHandle;
+            } catch (err) {
+                // Menyembunyikan log error merah, mengubahnya menjadi peringatan biasa
+                if (err.name !== 'AbortError') {
+                    console.warn("Folder picker batal/gagal. Beralih ke unduhan normal.");
+                }
+                return null;
+            }
+        }
+
+        async function saveFileHelper(blob, filename) {
+            if (outputDirHandle) {
+                try {
+                    const fileHandle = await outputDirHandle.getFileHandle(filename, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    return true;
+                } catch (err) {
+                    console.error("Gagal save ke folder, dialihkan ke normal:", err);
+                }
+            }
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+            return true;
+        }
+
+        function renderEmptyGrids() {
+            const buildGrid = (tableId) => {
+                const table = document.getElementById(tableId);
+                if(!table) return;
+                table.innerHTML = ''; 
+                let tbody = document.createElement('tbody');
+                for (let r = 1; r <= 35; r++) {
+                    let tr = document.createElement('tr');
+                    tr.className = "bg-[#0a0a0a]";
+                    for (let c = 1; c <= 20; c++) {
+                        let td = document.createElement('td');
+                        td.className = "h-[21px] min-w-[64px]";
+                        tr.appendChild(td);
+                    }
+                    tbody.appendChild(tr);
+                }
+                table.appendChild(tbody);
+            };
+            buildGrid('emptyGridOutput');
+        }
+
+        window.onload = function() {
+            renderEmptyGrids();
+        };
+
+        const getSafeValIn = (cell) => {
+            if (!cell || cell.value === null) return '';
+            if (typeof cell.value === 'object') {
+                if (cell.value.result !== undefined) return cell.value.result;
+                if (cell.value.richText) return cell.value.richText.map(rt => rt.text).join('');
+                if (cell.value instanceof Date) return cell.value.toLocaleDateString('id-ID');
+                return '';
+            }
+            return cell.value;
+        };
+
+        const renderExactExcelTable = (sheet, tableElementId) => {
+            const table = document.getElementById(tableElementId);
+            table.innerHTML = '';
+            
+            table.className = "bg-white text-left text-black border-collapse";
+            table.style.width = "max-content"; 
+            table.style.tableLayout = "fixed"; 
+            table.style.backgroundColor = "#ffffff";
+
+            const maxRows = Math.max(sheet.rowCount, 10);
+            const maxCols = Math.max(sheet.columnCount, 10);
+
+            let mergeMap = {};
+            if (sheet.model.merges) {
+                sheet.model.merges.forEach(m => {
+                    const [start, end] = m.split(':');
+                    const startCell = sheet.getCell(start);
+                    const endCell = sheet.getCell(end);
+                    const r1 = startCell.row, c1 = startCell.col;
+                    const r2 = endCell.row, c2 = endCell.col;
+
+                    mergeMap[`${r1}-${c1}`] = { rowSpan: r2 - r1 + 1, colSpan: c2 - c1 + 1, isMaster: true };
+                    for (let r = r1; r <= r2; r++) {
+                        for (let c = c1; c <= c2; c++) {
+                            if (r !== r1 || c !== c1) mergeMap[`${r}-${c}`] = { isMaster: false };
+                        }
+                    }
+                });
+            }
+
+            const getColWidthPx = (colIndex) => {
+                let col = sheet.getColumn(colIndex);
+                let w = col.width || 10;
+                return Math.floor(w * 22); 
+            };
+
+            const getBStyle = (b) => {
+                if (!b) return null;
+                let c = '#000000';
+                if (b.color && b.color.argb && b.color.argb !== '00000000') c = '#' + b.color.argb.slice(-6);
+                let w = '3px'; 
+                if (b.style === 'medium') w = '4px';
+                if (b.style === 'thick') w = '5px';
+                if (b.style === 'hair' || b.style === 'dotted') return `2px dotted ${c}`;
+                if (b.style === 'dashed') return `2px dashed ${c}`;
+                return `${w} solid ${c}`;
+            };
+
+            let tbody = document.createElement('tbody');
+            for (let r = 1; r <= maxRows; r++) {
+                let row = sheet.getRow(r);
+                let tr = document.createElement('tr');
+                let rowHeight = row ? (row.height || 18) : 18;
+                let hPx = Math.floor(rowHeight * 3.0); 
+                tr.style.height = hPx + 'px';
+
+                for (let c = 1; c <= maxCols; c++) {
+                    let mergeInfo = mergeMap[`${r}-${c}`];
+                    if (mergeInfo && !mergeInfo.isMaster) continue;
+
+                    let td = document.createElement('td');
+                    let wPx = getColWidthPx(c);
+                    if (mergeInfo && mergeInfo.isMaster) {
+                        wPx = 0;
+                        for (let mc = 0; mc < mergeInfo.colSpan; mc++) wPx += getColWidthPx(c + mc);
+                    }
+
+                    td.style.width = wPx + 'px';
+                    td.style.minWidth = wPx + 'px';
+                    td.style.maxWidth = "none"; 
+                    td.style.boxSizing = "border-box";
+                    td.style.padding = "18px 28px"; 
+                    td.style.overflow = "visible"; 
+                    td.style.whiteSpace = "nowrap";
+
+                    td.style.fontFamily = "'Arial Black', 'Segoe UI Black', Arial, sans-serif"; 
+                    td.style.fontSize = "28px"; 
+                    td.style.fontWeight = "800"; 
+                    td.style.color = "#000000"; 
+                    td.style.border = "none"; 
+                    td.style.letterSpacing = "0.03em";
+
+                    if (mergeInfo && mergeInfo.isMaster) {
+                        if (mergeInfo.rowSpan > 1) td.rowSpan = mergeInfo.rowSpan;
+                        if (mergeInfo.colSpan > 1) td.colSpan = mergeInfo.colSpan;
+                    }
+
+                    let cell = row ? row.getCell(c) : null;
+                    let val = cell ? getSafeValIn(cell) : '';
+
+                    if (typeof val === 'number') {
+                        td.innerText = val.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                        td.style.textAlign = 'right';
+                    } else if (typeof val === 'string') {
+                        // Check if the string is a formatted number with decimals
+                        let match = val.match(/^[0-9.,]+$/);
+                        if (match && val.includes(',')) {
+                            let parts = val.split(',');
+                            if (parts.length === 2 && parts[1].length <= 2) {
+                                td.innerText = parts[0];
+                            } else {
+                                td.innerText = val;
+                            }
+                            td.style.textAlign = 'right';
+                        } else {
+                            td.innerText = val;
+                        }
+                    } else {
+                        td.innerText = val;
+                    }
+
+                    if (val === '') td.innerHTML = '&nbsp;';
+
+                    if (cell) {
+                        let isMainTitle = false;
+                        let isHeaderInfo = false;
+                        let strVal = String(val).toUpperCase();
+                        
+                        // Deteksi Judul Utama
+                        if (strVal.includes('REKAP') || strVal.includes('YOUTUBE') || strVal.includes('PENGHASILAN') || strVal.includes('HASIL')) {
+                            isMainTitle = true;
+                        } else if (r <= 4 && mergeInfo && mergeInfo.isMaster) {
+                            isMainTitle = true; 
+                        } else if (r <= 4) {
+                            // Deteksi area Header (Partner, Nama Channel, dll)
+                            isHeaderInfo = true;
+                        }
+
+                        if (cell.font) {
+                            if (cell.font.bold) td.style.fontWeight = '900'; 
+                            if (cell.font.italic) td.style.fontStyle = 'italic';
+                            
+                            if (cell.font.size) {
+                                let extraSize = 16; // Ukuran normal tabel
+                                if (isMainTitle) {
+                                    extraSize = 42; // Memperbesar Ekstra Judul Utama
+                                } else if (isHeaderInfo) {
+                                    extraSize = 28; // Memperbesar Info Partner
+                                }
+                                td.style.fontSize = (cell.font.size + extraSize) + 'pt'; 
+                            }
+                            
+                            if (cell.font.color && cell.font.color.argb && cell.font.color.argb !== '00000000') {
+                                td.style.color = '#' + cell.font.color.argb.slice(-6);
+                            }
+                        } else {
+                            if (isMainTitle) {
+                                td.style.fontSize = '50pt'; 
+                                td.style.fontWeight = '900';
+                            } else if (isHeaderInfo) {
+                                td.style.fontSize = '34pt'; 
+                                td.style.fontWeight = '900';
+                            }
+                        }
+
+                        if (cell.fill && cell.fill.type === 'pattern' && cell.fill.fgColor && cell.fill.fgColor.argb) {
+                            if (cell.fill.fgColor.argb !== '00000000') {
+                                td.style.backgroundColor = '#' + cell.fill.fgColor.argb.slice(-6);
+                            }
+                        }
+                        if (cell.alignment) {
+                            if (cell.alignment.horizontal) td.style.textAlign = cell.alignment.horizontal;
+                            if (cell.alignment.vertical) {
+                                let va = cell.alignment.vertical;
+                                if(va === 'center') va = 'middle';
+                                td.style.verticalAlign = va;
+                            }
+                        }
+                        
+                        let borderTop, borderBottom, borderLeft, borderRight;
+                        if (cell.border) {
+                            borderTop = cell.border.top;
+                            borderBottom = cell.border.bottom;
+                            borderLeft = cell.border.left;
+                            borderRight = cell.border.right;
+                        }
+
+                        if (mergeInfo && mergeInfo.isMaster) {
+                            let rightCol = c + (mergeInfo.colSpan || 1) - 1;
+                            let bottomRow = r + (mergeInfo.rowSpan || 1) - 1;
+                            
+                            if (rightCol > c) {
+                                let rightCell = row ? row.getCell(rightCol) : null;
+                                if (rightCell && rightCell.border && rightCell.border.right) borderRight = rightCell.border.right;
+                            }
+                            if (bottomRow > r) {
+                                let bottomRowObj = sheet.getRow(bottomRow);
+                                let bottomCell = bottomRowObj ? bottomRowObj.getCell(c) : null;
+                                if (bottomCell && bottomCell.border && bottomCell.border.bottom) borderBottom = bottomCell.border.bottom;
+                            }
+                            if (bottomRow > r && rightCol > c) {
+                                let brRowObj = sheet.getRow(bottomRow);
+                                let brCell = brRowObj ? brRowObj.getCell(rightCol) : null;
+                                if (brCell && brCell.border) {
+                                    if (!borderRight && brCell.border.right) borderRight = brCell.border.right;
+                                    if (!borderBottom && brCell.border.bottom) borderBottom = brCell.border.bottom;
+                                }
+                            }
+                        }
+
+                        if (borderTop) td.style.borderTop = getBStyle(borderTop);
+                        if (borderBottom) td.style.borderBottom = getBStyle(borderBottom);
+                        if (borderLeft) td.style.borderLeft = getBStyle(borderLeft);
+                        if (borderRight) td.style.borderRight = getBStyle(borderRight);
+                    }
+
+                    tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+            }
+            table.appendChild(tbody);
+        };
+
+        function log(msg) {
+            const div = document.createElement('div');
+            const time = new Date().toLocaleTimeString('id-ID', { hour12: false });
+            div.innerHTML = `<span class="text-zinc-600 mr-2">[${time}]</span> ${msg}`;
+            terminal.appendChild(div);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function formatRupiah(angka) {
+            return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(angka);
+        }
+
+        function cleanNumber(str) {
+            let s = str.replace(/[Oo]/g, '0').replace(/[lI]/g, '1').replace(/[sS]/g, '5');
+            // Remove decimal part if it exists (e.g., ,72)
+            s = s.split(',')[0];
+            return parseInt(s.replace(/[^0-9]/g, ''), 10) || 0;
+        }
+
+        window.addEventListener('paste', e => {
+            if (e.clipboardData.files.length > 0) {
+                const fileInput = document.getElementById('fileInput');
+                fileInput.files = e.clipboardData.files;
+                handleFileUpload({ target: fileInput });
+            }
+        });
+
+        const dropZone = document.getElementById('dropZone');
+        let dragCounter = 0;
+
+        window.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            dragCounter++;
+            dropZone.classList.add('border-cyan-500', 'bg-cyan-950/40', 'shadow-[0_0_40px_rgba(6,182,212,0.3)]');
+            dropZone.classList.remove('border-zinc-700/50', 'bg-black/80');
+        });
+
+        window.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        window.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dragCounter--;
+            if (dragCounter === 0) {
+                dropZone.classList.remove('border-cyan-500', 'bg-cyan-950/40', 'shadow-[0_0_40px_rgba(6,182,212,0.3)]');
+                dropZone.classList.add('border-zinc-700/50', 'bg-black/80');
+            }
+        });
+
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dragCounter = 0;
+            dropZone.classList.remove('border-cyan-500', 'bg-cyan-950/40', 'shadow-[0_0_40px_rgba(6,182,212,0.3)]');
+            dropZone.classList.add('border-zinc-700/50', 'bg-black/80');
+
+            if (e.dataTransfer.files.length > 0) {
+                const fileInput = document.getElementById('fileInput');
+                fileInput.files = e.dataTransfer.files;
+                handleFileUpload({ target: fileInput });
+            }
+        });
+
+        let pendingFilesList = null;
+
+        function handleFileUpload(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            pendingFilesList = Array.from(files);
+            
+            document.getElementById('uploadPrompt').classList.add('hidden');
+            document.getElementById('fileInput').classList.add('hidden');
+            
+            const pendingState = document.getElementById('pendingState');
+            pendingState.classList.remove('hidden');
+            pendingState.classList.add('flex');
+            
+            document.getElementById('pendingCountText').innerHTML = `<span class="text-amber-400">${files.length}</span> File Terdeteksi`;
+            log(`> Menunggu konfirmasi: <span class="text-amber-400 font-bold">${files.length} file</span> siap diproses. Klik tombol 'Mulai Proses'.`);
+        }
+
+        function cancelPending() {
+            pendingFilesList = null;
+            document.getElementById('pendingState').classList.remove('flex');
+            document.getElementById('pendingState').classList.add('hidden');
+            document.getElementById('uploadPrompt').classList.remove('hidden');
+            
+            const fileInput = document.getElementById('fileInput');
+            fileInput.classList.remove('hidden'); 
+            fileInput.value = ""; 
+            
+            log("> Peringatan: Anda membatalkan proses.");
+        }
+
+        async function startProcessing() {
+            if (!pendingFilesList || pendingFilesList.length === 0) return;
+            
+            terminal.innerHTML = '';
+            
+            // PILIH FOLDER TERLEBIH DAHULU SEBELUM EKSEKUSI
+            log("<span class='text-yellow-400 font-bold'>➜ Menyiapkan mode penyimpanan...</span>");
+            await selectOutputFolder();
+            
+            if (!outputDirHandle) {
+                log("<span class='text-cyan-400'>➜ Info: Menyimpan file menggunakan folder unduhan default browser.</span>");
+            }
+
+            const files = pendingFilesList;
+            pendingFilesList = null; 
+            
+            document.getElementById('pendingState').classList.remove('flex');
+            document.getElementById('pendingState').classList.add('hidden');
+            const fileInput = document.getElementById('fileInput');
+            fileInput.classList.remove('hidden');
+            fileInput.value = ""; 
+
+            if (files.length === 1) {
+                const file = files[0];
+                if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
+                    processExcelFile(file);
+                } else if (file.type.startsWith('image/')) {
+                    processImageFile(file);
+                } else {
+                    log("<span class='text-red-500'>Error: Format file tidak didukung. Harap masukkan Gambar atau Excel.</span>");
+                    document.getElementById('uploadPrompt').classList.remove('hidden');
+                }
+            } else {
+                processBatchExcelFiles(files);
+            }
+        }
+
+        async function processBatchExcelFiles(fileList) {
+            let excelFiles = Array.from(fileList).filter(f => f.name.toLowerCase().endsWith('.xlsx') || f.name.toLowerCase().endsWith('.xls'));
+            let otherFiles = fileList.length - excelFiles.length;
+
+            log(`<span class="text-yellow-400 font-bold">⚡ MODE BATCH AKTIF:</span> Memproses ${excelFiles.length} file Excel secara otomatis...`);
+            if (otherFiles > 0) {
+                log(`<span class='text-red-400'>Mengabaikan ${otherFiles} file non-Excel dalam antrean.</span>`);
+            }
+
+            document.getElementById('dropZone').classList.remove('hidden');
+            document.getElementById('uploadPrompt').classList.add('hidden');
+            document.getElementById('scanLine').style.display = 'block';
+
+            if (document.getElementById('excelOutputWrapper')) document.getElementById('excelOutputWrapper').classList.add('hidden');
+            if (document.getElementById('excelOutput')) document.getElementById('excelOutput').classList.add('hidden');
+            if (document.getElementById('canvas2')) document.getElementById('canvas2').classList.add('hidden');
+            document.getElementById('downloadContainer').classList.add('hidden');
+
+            const badge = document.getElementById('batchStatusBadge');
+            const badgeText = document.getElementById('batchStatusText');
+            const badgeIcon = badge ? badge.querySelector('svg') : null;
+            
+            if (badge) {
+                badge.className = "mb-4 inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-cyan-950/50 border border-cyan-500/50 rounded-full shadow-[0_0_15px_rgba(6,182,212,0.3)] w-max mx-auto relative z-10 transition-all duration-300";
+                if (badgeIcon) {
+                    badgeIcon.classList.remove('hidden');
+                    badgeIcon.className = "animate-spin h-4 w-4 text-cyan-400"; 
+                }
+                badgeText.className = "text-xs font-bold text-cyan-300 tracking-wider uppercase";
+                badgeText.innerText = `MEMPROSES 0 / ${excelFiles.length} FILE...`;
+            }
+
+            for (let i = 0; i < excelFiles.length; i++) {
+                if (badge) badgeText.innerText = `MEMPROSES ${i + 1} / ${excelFiles.length} FILE...`;
+
+                let file = excelFiles[i];
+                log(`[${i+1}/${excelFiles.length}] Eksekusi: <span class="text-cyan-300">${file.name}</span>...`);
+                
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const workbook = new ExcelJS.Workbook();
+                    await workbook.xlsx.load(arrayBuffer);
+
+                    let targetSheet = null;
+                    let col100 = -1, col70 = -1, col30 = -1;
+                    let headerRowNumber = -1;
+
+                    for (const ws of workbook.worksheets) {
+                        ws.eachRow((row, rowNumber) => {
+                            row.eachCell((cell, colNumber) => {
+                                let valText = '';
+                                if (cell.value) {
+                                    if (typeof cell.value === 'string') valText = cell.value.toUpperCase();
+                                    else if (cell.value.richText) valText = cell.value.richText.map(rt => rt.text).join('').toUpperCase();
+                                    else valText = cell.value.toString().toUpperCase();
+                                }
+                                if (valText.includes('IDR') || valText.includes('REVENUE (IDR)')) col100 = colNumber;
+                                if (valText.includes('70%')) col70 = colNumber;
+                                if (valText.includes('30%')) col30 = colNumber;
+
+                                if (col100 !== -1 && col70 !== -1 && col30 !== -1 && headerRowNumber === -1) {
+                                    headerRowNumber = rowNumber;
+                                    targetSheet = ws;
+                                }
+                            });
+                            if (targetSheet) return;
+                        });
+                        if (targetSheet) break;
+                    }
+
+                    if (targetSheet && col100 !== -1 && col70 !== -1 && col30 !== -1) {
+                        let headerRow = targetSheet.getRow(headerRowNumber);
+                        
+                        let cell70 = headerRow.getCell(col70);
+                        if (typeof cell70.value === 'string') cell70.value = cell70.value.replace(/70%/g, '80%');
+                        else if (cell70.value && cell70.value.richText) cell70.value.richText.forEach(rt => rt.text = rt.text.replace(/70%/g, '80%'));
+
+                        let cell30 = headerRow.getCell(col30);
+                        if (typeof cell30.value === 'string') cell30.value = cell30.value.replace(/30%/g, '20%');
+                        else if (cell30.value && cell30.value.richText) cell30.value.richText.forEach(rt => rt.text = rt.text.replace(/30%/g, '20%'));
+
+                        targetSheet.eachRow((row, rowNumber) => {
+                            if (rowNumber > headerRowNumber) {
+                                const cell100 = row.getCell(col100);
+                                let val100 = 0;
+                                if (cell100.value !== null) {
+                                    if (typeof cell100.value === 'number') val100 = cell100.value;
+                                    else if (typeof cell100.value === 'object' && cell100.value.result !== undefined) val100 = Number(cell100.value.result);
+                                    else val100 = parseFloat(cell100.value.toString().replace(/[^0-9,-]+/g,"").replace(',', '.'));
+                                }
+                                if (!isNaN(val100) && val100 > 0) {
+                                    row.getCell(col70).value = Math.round(val100 * 0.8);
+                                    row.getCell(col30).value = val100 - Math.round(val100 * 0.8);
+                                }
+                            }
+                        });
+
+                        let baseFilename = file.name.replace(/\.[^/.]+$/, "").replace(/Report\s*YT|Report_YT/gi, '').replace(/[()]/g, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim() || 'Laporan';
+                        
+                        const batchFormat = document.querySelector('input[name="batchFormat"]:checked')?.value || 'xlsx';
+                        
+                        // Format khusus JPG: sisakan nama saja (hapus bulan dan angka di akhir)
+                        if (batchFormat === 'jpg') {
+                            const monthRegex = /[_\s]?(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|january|february|march|may|june|july|august|october|december)[_\s\d]*$/i;
+                            baseFilename = baseFilename.replace(monthRegex, '');
+                            baseFilename = baseFilename.replace(/[_\s][0-9]{2,4}$/, '').trim();
+                        }
+
+                        baseFilename = baseFilename.replace(/_/g, ' ');
+
+                        let defaultFilename = baseFilename;
+                        
+                        if (batchFormat === 'xlsx') {
+                            const outputBuffer = await workbook.xlsx.writeBuffer();
+                            const blob = new Blob([outputBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                            await saveFileHelper(blob, defaultFilename + '.xlsx');
+                            log(`  <span class='text-emerald-400'>➜ Excel Tersimpan.</span>`);
+                        } else if (batchFormat === 'jpg') {
+                            renderExactExcelTable(targetSheet, 'excelPreviewTable');
+                            
+                            const containerToCapture = document.getElementById('excelOutput');
+                            
+                            const printContainer = document.createElement('div');
+                            printContainer.style.position = 'absolute';
+                            printContainer.style.top = '-99999px';
+                            printContainer.style.left = '0';
+                            printContainer.style.backgroundColor = '#ffffff'; 
+                            
+                            const uiClone = containerToCapture.cloneNode(true);
+                            uiClone.classList.remove('hidden', 'absolute', 'inset-0', 'shadow-2xl', 'rounded-xl', 'border', 'border-[#107c41]/30', 'overflow-hidden');
+                            uiClone.style.transform = 'none';
+                            uiClone.style.position = 'relative';
+                            uiClone.style.display = 'flex';
+                            uiClone.style.flexDirection = 'column';
+                            uiClone.style.alignItems = 'stretch';
+                            uiClone.style.backgroundColor = '#ffffff';
+                            uiClone.style.overflow = 'hidden';
+                            
+                            // Paksa Header & Footer merentang penuh
+                            Array.from(uiClone.children).forEach(el => {
+                                if (el.classList.contains('bg-[#107c41]') || el.classList.contains('bg-[#f3f2f1]')) {
+                                    el.style.width = '100%';
+                                    el.style.minWidth = '100%';
+                                    el.style.flexShrink = '0';
+                                }
+                            });
+                            
+                            const scrollArea = uiClone.querySelector('.overflow-auto') || uiClone.querySelector('.bg-white');
+                            if (scrollArea) {
+                                scrollArea.classList.remove('overflow-auto');
+                                scrollArea.style.overflow = 'hidden'; 
+                                scrollArea.style.flex = '1'; 
+                                scrollArea.style.backgroundColor = '#ffffff';
+                                scrollArea.style.display = 'flex';
+                                scrollArea.style.flexDirection = 'column';
+                                scrollArea.style.alignItems = 'center';
+                                scrollArea.style.justifyContent = 'flex-start'; // Menyelaraskan tabel ke atas
+                                scrollArea.style.paddingTop = '60px'; // Jarak tabel dari bar hijau
+                                scrollArea.style.width = '100%';
+                            }
+
+                            const tableClone = uiClone.querySelector('#excelPreviewTable');
+                            if (tableClone) {
+                                tableClone.style.fontFamily = "'Arial Black', 'Segoe UI Black', Arial, sans-serif"; 
+                                tableClone.style.borderCollapse = 'collapse';
+                                tableClone.style.width = 'max-content'; 
+                                tableClone.style.backgroundColor = '#ffffff';
+                                tableClone.style.textRendering = 'optimizeLegibility';
+                                tableClone.style.webkitFontSmoothing = 'antialiased';
+                                
+                                const rows = tableClone.querySelectorAll('tr');
+                                rows.forEach(row => { row.style.height = 'auto'; });
+                                const cells = tableClone.querySelectorAll('td, th');
+                                cells.forEach(cell => {
+                                    cell.style.height = 'auto';
+                                    cell.style.lineHeight = '1.4'; 
+                                });
+                            }
+
+                            printContainer.appendChild(uiClone);
+                            document.body.appendChild(printContainer);
+
+                            // MENGATUR RASIO 16:9
+                            const baseWidth = Math.max(800, tableClone ? tableClone.offsetWidth + 100 : 1920);
+                            const baseHeight = Math.max(600, tableClone ? tableClone.offsetHeight + 150 : 1080);
+                            
+                            let finalWidth = baseWidth;
+                            let finalHeight = baseHeight;
+                            
+                            // Cek apakah rasio saat ini < 16:9
+                            if (baseWidth / baseHeight < 16 / 9) {
+                                finalWidth = Math.ceil(baseHeight * (16 / 9));
+                            } else {
+                                finalHeight = Math.ceil(baseWidth * (9 / 16));
+                            }
+
+                            // Terapkan ukuran final
+                            printContainer.style.width = finalWidth + 'px';
+                            printContainer.style.height = finalHeight + 'px';
+                            uiClone.style.width = finalWidth + 'px';
+                            uiClone.style.height = finalHeight + 'px';
+                            uiClone.style.minWidth = finalWidth + 'px';
+                            uiClone.style.minHeight = finalHeight + 'px';
+
+                            const canvas = await html2canvas(printContainer, {
+                                backgroundColor: '#ffffff',
+                                scale: 2, 
+                                logging: false,
+                                useCORS: true,
+                                windowWidth: finalWidth,
+                                windowHeight: finalHeight,
+                                width: finalWidth,
+                                height: finalHeight
+                            });
+                            
+                            document.body.removeChild(printContainer);
+                            
+                            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+                            await saveFileHelper(blob, defaultFilename + '.jpg');
+                            log(`  <span class='text-purple-400'>➜ JPG Tersimpan.</span>`);
+                        }
+
+                    } else {
+                        log(`  <span class='text-red-400'>➜ Lewati: Format tabel tidak sesuai (Tidak ada IDR/70/30).</span>`);
+                    }
+
+                } catch (err) {
+                    log(`  <span class='text-red-500'>➜ Error internal: ${err.message}</span>`);
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 800)); 
+            }
+
+            document.getElementById('scanLine').style.display = 'none';
+            log(`<span class='text-emerald-400 font-bold text-lg'>✅ SUKSES: Semua file batch telah dikerjakan!</span>`);
+            
+            if (badge) {
+                badge.className = "mb-4 inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-emerald-950/50 border border-emerald-500/50 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.3)] w-max mx-auto relative z-10 transition-all duration-300";
+                if (badgeIcon) {
+                    badgeIcon.className = "h-4 w-4 text-emerald-400";
+                }
+                badgeText.className = "text-xs font-bold text-emerald-300 tracking-wider uppercase";
+                badgeText.innerText = `SUKSES: ${excelFiles.length} FILE SELESAI!`;
+                
+                setTimeout(() => {
+                    badge.className = "mb-4 inline-flex items-center justify-center gap-2 px-3 py-1.5 bg-zinc-900/50 border border-zinc-700/50 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.5)] w-max mx-auto relative z-10 transition-all duration-300";
+                    if (badgeIcon) {
+                        badgeIcon.className = "h-4 w-4 text-zinc-400";
+                    }
+                    badgeText.className = "text-xs font-bold text-zinc-400 tracking-wider uppercase";
+                    badgeText.innerText = "STANDBY - MENUNGGU FILE";
+                }, 6000);
+            }
+
+            document.getElementById('uploadPrompt').classList.remove('hidden');
+            document.getElementById('uploadPrompt').innerHTML = `
+                <div class="bg-emerald-500/10 p-4 rounded-full border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                    <svg class="h-8 w-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <div>
+                    <p class="text-zinc-50 font-black text-2xl tracking-wide drop-shadow-lg">Batch Selesai</p>
+                    <p class="text-zinc-400 text-sm mt-1 font-medium">Tarik file tunggal/banyak lagi untuk memproses ulang</p>
+                </div>
+            `;
+        }
+
+        async function processExcelFile(file) {
+            log(`Menerima file Excel: <span class="text-emerald-400">${file.name}</span>. Menelusuri seluruh Sheet...`);
+            
+            document.getElementById('dropZone').classList.remove('hidden');
+            document.getElementById('uploadPrompt').classList.add('hidden');
+            document.getElementById('excelInput').classList.add('hidden');
+            document.getElementById('scanLine').style.display = 'block';
+            document.getElementById('outputPrompt').classList.remove('hidden');
+            if (document.getElementById('excelOutputWrapper')) {
+                document.getElementById('excelOutputWrapper').classList.add('hidden');
+            }
+            if (document.getElementById('excelOutput')) {
+                document.getElementById('excelOutput').classList.add('hidden');
+            }
+            document.getElementById('downloadContainer').classList.add('hidden');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const workbook = new ExcelJS.Workbook();
+                await workbook.xlsx.load(arrayBuffer);
+
+                let targetSheet = null;
+                let col100 = -1, col70 = -1, col30 = -1;
+                let headerRowNumber = -1;
+
+                for (const ws of workbook.worksheets) {
+                    ws.eachRow((row, rowNumber) => {
+                        row.eachCell((cell, colNumber) => {
+                            let valText = '';
+                            if (cell.value) {
+                                if (typeof cell.value === 'string') valText = cell.value.toUpperCase();
+                                else if (cell.value.richText) valText = cell.value.richText.map(rt => rt.text).join('').toUpperCase();
+                                else valText = cell.value.toString().toUpperCase();
+                            }
+                            
+                            if (valText.includes('IDR') || valText.includes('REVENUE (IDR)')) col100 = colNumber;
+                            if (valText.includes('70%')) col70 = colNumber;
+                            if (valText.includes('30%')) col30 = colNumber;
+
+                            if (col100 !== -1 && col70 !== -1 && col30 !== -1 && headerRowNumber === -1) {
+                                headerRowNumber = rowNumber;
+                                targetSheet = ws;
+                            }
+                        });
+                        if (targetSheet) return;
+                    });
+                    if (targetSheet) break;
+                }
+
+                if (targetSheet && col100 !== -1 && col70 !== -1 && col30 !== -1) {
+                    let headerRow = targetSheet.getRow(headerRowNumber);
+                    
+                    let cell70 = headerRow.getCell(col70);
+                    if (typeof cell70.value === 'string') cell70.value = cell70.value.replace(/70%/g, '80%');
+                    else if (cell70.value && cell70.value.richText) cell70.value.richText.forEach(rt => rt.text = rt.text.replace(/70%/g, '80%'));
+
+                    let cell30 = headerRow.getCell(col30);
+                    if (typeof cell30.value === 'string') cell30.value = cell30.value.replace(/30%/g, '20%');
+                    else if (cell30.value && cell30.value.richText) cell30.value.richText.forEach(rt => rt.text = rt.text.replace(/30%/g, '20%'));
+
+                    targetSheet.eachRow((row, rowNumber) => {
+                        if (rowNumber > headerRowNumber) {
+                            const cell100 = row.getCell(col100);
+                            let val100 = 0;
+                            if (cell100.value !== null) {
+                                if (typeof cell100.value === 'number') {
+                                    val100 = cell100.value;
+                                } else if (typeof cell100.value === 'object' && cell100.value.result !== undefined) {
+                                    val100 = Number(cell100.value.result);
+                                } else {
+                                    let strVal = cell100.value.toString();
+                                    val100 = parseFloat(strVal.replace(/[^0-9,-]+/g,"").replace(',', '.'));
+                                }
+                            }
+
+                            if (!isNaN(val100) && val100 > 0) {
+                                let val80 = Math.round(val100 * 0.8);
+                                let val20 = val100 - val80;
+                                row.getCell(col70).value = val80;
+                                row.getCell(col30).value = val20;
+                            }
+                        }
+                    });
+
+                    outputMode = 'excel';
+                    
+                    let baseFilename = file.name.replace(/\.[^/.]+$/, "");
+                    baseFilename = baseFilename.replace(/Report\s*YT|Report_YT/gi, '').replace(/[()]/g, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+                    
+                    // Filter bulan dan tahun untuk UI Input (berlaku untuk JPG & XLSX)
+                    const monthRegex = /[_\s]?(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|january|february|march|may|june|july|august|october|december)[_\s\d]*$/i;
+                    baseFilename = baseFilename.replace(monthRegex, '');
+                    baseFilename = baseFilename.replace(/[_\s][0-9]{2,4}$/, '').trim();
+                    
+                    let defaultFilename = (baseFilename || 'TNC7 Partner');
+                    
+                    document.getElementById('filenameInput').value = defaultFilename;
+
+                    const outputBuffer = await workbook.xlsx.writeBuffer();
+                    currentExcelBlob = new Blob([outputBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                    
+                    if (excelBlobUrl) URL.revokeObjectURL(excelBlobUrl);
+                    excelBlobUrl = URL.createObjectURL(currentExcelBlob);
+
+                    document.getElementById('scanLine').style.display = 'none';
+                    document.getElementById('outputPrompt').classList.add('hidden');
+                    document.getElementById('dropZone').classList.add('hidden');
+                    if (document.getElementById('excelOutputWrapper')) {
+                        document.getElementById('excelOutputWrapper').classList.remove('hidden');
+                    }
+                    if (document.getElementById('excelOutput')) {
+                        document.getElementById('excelOutput').classList.remove('hidden');
+                    }
+                    document.getElementById('downloadContainer').classList.remove('hidden');
+                    document.getElementById('btnDownloadXlsx').classList.remove('hidden');
+
+                    renderExactExcelTable(targetSheet, 'excelPreviewTable');
+                    adjustScale();
+
+                } else {
+                    log("<span class='text-red-400'>Error: Format kolom tidak ditemukan.</span>");
+                    document.getElementById('scanLine').style.display = 'none';
+                }
+
+            } catch (err) {
+                console.error(err);
+                log(`<span class='text-red-500'>Error: ${err.message}</span>`);
+                document.getElementById('scanLine').style.display = 'none';
+            }
+        }
+
+        function processImageFile(file) {
+            log("Menerima gambar. Memulai proses Ultimate Pixel-Perfect...");
+
+            outputMode = 'image';
+            if (document.getElementById('excelOutputWrapper')) {
+                document.getElementById('excelOutputWrapper').classList.add('hidden');
+            }
+            if (document.getElementById('excelOutput')) {
+                document.getElementById('excelOutput').classList.add('hidden');
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas1 = document.getElementById('canvas1');
+                    const ctx1 = canvas1.getContext('2d');
+                    
+                    document.getElementById('dropZone').classList.remove('hidden');
+                    document.getElementById('uploadPrompt').classList.add('hidden');
+                    
+                    canvas1.width = img.width;
+                    canvas1.height = img.height;
+                    ctx1.drawImage(img, 0, 0);
+
+                    document.getElementById('scanLine').style.display = 'block';
+                    document.getElementById('outputPrompt').classList.remove('hidden');
+                    document.getElementById('canvas2').classList.add('hidden');
+                    document.getElementById('downloadContainer').classList.add('hidden');
+
+                    runTesseractOCR(img);
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        async function runTesseractOCR(imgElement) {
+            log("Engine OCR Aktif: Memindai matriks dokumen (Resolusi Tinggi)...");
+            
+            const scaleFactor = 2; 
+            const upCanvas = document.createElement('canvas');
+            upCanvas.width = imgElement.width * scaleFactor;
+            upCanvas.height = imgElement.height * scaleFactor;
+            const upCtx = upCanvas.getContext('2d');
+            upCtx.imageSmoothingEnabled = false; 
+            upCtx.drawImage(imgElement, 0, 0, upCanvas.width, upCanvas.height);
+            
+            try {
+                const worker = await Tesseract.createWorker('eng');
+                await worker.setParameters({
+                    tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT, 
+                });
+
+                const result = await worker.recognize(upCanvas);
+                await worker.terminate();
+
+                let words = result.data.words.map(w => ({
+                    text: w.text.trim(),
+                    bbox: {
+                        x0: w.bbox.x0 / scaleFactor, y0: w.bbox.y0 / scaleFactor,
+                        x1: w.bbox.x1 / scaleFactor, y1: w.bbox.y1 / scaleFactor
+                    },
+                    centerX: (w.bbox.x0 + w.bbox.x1) / (2 * scaleFactor),
+                    centerY: (w.bbox.y0 + w.bbox.y1) / (2 * scaleFactor)
+                }));
+
+                processPixelPerfect(words, imgElement);
+
+            } catch (error) {
+                console.error(error);
+                log("<span class='text-red-500'>Error: Gagal memproses gambar.</span>");
+                document.getElementById('scanLine').style.display = 'none';
+            }
+        }
+
+        function processPixelPerfect(words, imgElement) {
+            log("> Menganalisis Zona Fokus: (IDR), (70%), dan (30%)...");
+
+            let defaultFilename = "TNC7 Partner";
+            let partnerWords = words.filter(w => w.text.trim().toLowerCase() === 'partner');
+            partnerWords.sort((a, b) => a.centerY - b.centerY); 
+            let partnerLabel = partnerWords.length > 0 ? partnerWords[0] : null;
+
+            if (partnerLabel) {
+                let nameWords = words.filter(w => 
+                    Math.abs(w.centerY - partnerLabel.centerY) < 15 && 
+                    w.centerX > partnerLabel.centerX + 30
+                );
+
+                if (nameWords.length > 0) {
+                    nameWords.sort((a, b) => a.centerX - b.centerX);
+                    let rawName = nameWords.map(w => w.text).join(' ');
+                    let cleanName = rawName.replace(/[()]/g, '').replace(/[^a-zA-Z0-9\s]/g, '').trim();
+                    
+                    if (cleanName.length > 0) {
+                        defaultFilename = cleanName;
+                        defaultFilename = defaultFilename.replace(/Report\s*YT|Report_YT/gi, '').replace(/[()]/g, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+                        
+                        // Filter bulan dan tahun untuk hasil scan OCR gambar
+                        const monthRegex = /[_\s]?(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|january|february|march|may|june|july|august|october|december)[_\s\d]*$/i;
+                        defaultFilename = defaultFilename.replace(monthRegex, '');
+                        defaultFilename = defaultFilename.replace(/[_\s][0-9]{2,4}$/, '').trim();
+                        
+                        if(!defaultFilename) defaultFilename = "TNC7 Partner";
+                    }
+                }
+            }
+            
+            document.getElementById('filenameInput').value = defaultFilename;
+
+            const canvas2 = document.getElementById('canvas2');
+            const ctx2 = canvas2.getContext('2d', { willReadFrequently: true });
+            canvas2.width = imgElement.width;
+            canvas2.height = imgElement.height;
+            ctx2.drawImage(imgElement, 0, 0); 
+            const imgData = ctx2.getImageData(0, 0, canvas2.width, canvas2.height);
+
+            let headerIDR = null, header70 = null, header30 = null;
+            words.forEach(w => {
+                let t = w.text.toUpperCase();
+                if (t.includes('IDR')) headerIDR = w;
+                if (t.includes('70%') || t.includes('(70%)')) header70 = w;
+                if (t.includes('30%') || t.includes('(30%)')) header30 = w;
+            });
+
+            if (!headerIDR || !header70 || !header30) {
+                log("<span class='text-red-400'>Error: Kolom (IDR) / (70%) / (30%) tidak terdeteksi jelas.</span>");
+                document.getElementById('scanLine').style.display = 'none';
+                return;
+            }
+
+            function patchText(targetWords, newText, isHeader = false) {
+                if (!targetWords || targetWords.length === 0) return;
+                let minX = Math.min(...targetWords.map(w => w.bbox.x0));
+                let maxX = Math.max(...targetWords.map(w => w.bbox.x1));
+                let minY = Math.min(...targetWords.map(w => w.bbox.y0));
+                let maxY = Math.max(...targetWords.map(w => w.bbox.y1));
+
+                let padX = 1; 
+                let padY = 2;
+                let sampleX = Math.floor(minX + 2); 
+                let sampleY = Math.floor(minY - 2); 
+                let idx = (sampleY * imgData.width + sampleX) * 4;
+                let r = imgData.data[idx], g = imgData.data[idx+1], b = imgData.data[idx+2];
+                let bgColor = `rgb(${r}, ${g}, ${b})`;
+
+                if (r > 230 && g > 230 && b > 230) {
+                    bgColor = "#FFFFFF";
+                }
+
+                ctx2.fillStyle = bgColor;
+                ctx2.fillRect(minX - padX, minY - padY, (maxX - minX) + (padX * 2), (maxY - minY) + (padY * 2));
+
+                let height = maxY - minY;
+                let fontSize = Math.max(20, height * 1.6); 
+                ctx2.fillStyle = "#000000";
+                
+                if (isHeader) {
+                    ctx2.font = `700 ${fontSize}px Calibri, Arial, sans-serif`; 
+                    ctx2.textAlign = "center";
+                    ctx2.textBaseline = "middle";
+                    let centerX = (minX + maxX) / 2;
+                    ctx2.fillText(newText, centerX, (minY + maxY) / 2 + 1);
+                } else {
+                    ctx2.font = `900 ${fontSize}px Calibri, Arial, sans-serif`;
+                    ctx2.textAlign = "right";
+                    ctx2.textBaseline = "middle";
+                    let textX = maxX - 1;
+                    let textY = (minY + maxY) / 2 + 1;
+                    ctx2.fillText(newText, textX, textY); 
+                }
+            }
+
+            patchText([header70], "(80%)", true);
+            patchText([header30], "(20%)", true);
+
+            let idrNumbers = [];
+            words.forEach(w => {
+                let val = cleanNumber(w.text);
+                if (val > 0 && Math.abs(w.centerX - headerIDR.centerX) < 60 && w.centerY > headerIDR.centerY) {
+                    let existing = idrNumbers.find(n => Math.abs(n.centerY - w.centerY) < 10);
+                    if (existing) {
+                        existing.text += w.text;
+                        existing.value = cleanNumber(existing.text);
+                        existing.bbox.x1 = Math.max(existing.bbox.x1, w.bbox.x1);
+                        existing.bbox.y1 = Math.max(existing.bbox.y1, w.bbox.y1);
+                        existing.bbox.x0 = Math.min(existing.bbox.x0, w.bbox.x0);
+                        existing.bbox.y0 = Math.min(existing.bbox.y0, w.bbox.y0);
+                    } else {
+                        idrNumbers.push({...w, value: val});
+                    }
+                }
+            });
+
+            idrNumbers.forEach(row => {
+                let val100 = row.value; 
+                let val80 = Math.round(val100 * 0.8);
+                let val20 = val100 - val80;
+
+                let words70 = words.filter(w => Math.abs(w.centerY - row.centerY) < 15 && Math.abs(w.centerX - header70.centerX) < 70 && cleanNumber(w.text) > 0);
+                if (words70.length > 0) {
+                    patchText(words70, formatRupiah(val80), false);
+                }
+
+                let words30 = words.filter(w => Math.abs(w.centerY - row.centerY) < 15 && Math.abs(w.centerX - header30.centerX) < 70 && cleanNumber(w.text) > 0);
+                if (words30.length > 0) {
+                    patchText(words30, formatRupiah(val20), false);
+                }
+            });
+
+            ctx2.save();
+            let wmSize = Math.max(30, imgElement.height * 0.035);
+            ctx2.font = `900 ${wmSize}px 'Arial Black', 'Segoe UI Black', sans-serif`;
+            ctx2.fillStyle = "rgba(100, 100, 100, 0.85)";
+            ctx2.textAlign = "right";
+            ctx2.textBaseline = "bottom";
+            ctx2.fillText("TNC7 MEMBER", canvas2.width - (wmSize), canvas2.height - (wmSize));
+            ctx2.restore();
+
+            log("<span class='text-emerald-400 font-bold'>SUKSES: Perfect Clone V5 Selesai! Silakan simpan.</span>");
+            document.getElementById('scanLine').style.display = 'none';
+            document.getElementById('outputPrompt').classList.add('hidden');
+            document.getElementById('dropZone').classList.add('hidden');
+            canvas2.classList.remove('hidden');
+            
+            document.getElementById('downloadContainer').classList.remove('hidden');
+            document.getElementById('btnDownloadXlsx').classList.add('hidden');
+        }
+
+        async function downloadImageOutput() {
+            let filename = document.getElementById('filenameInput').value.trim() || 'TNC7 Partner';
+            filename = filename.replace(/Report\s*YT|Report_YT/gi, '').replace(/[()]/g, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+            
+            // Format khusus JPG: sisakan nama saja (hapus bulan dan angka tahun)
+            const monthRegex = /[_\s]?(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|january|february|march|may|june|july|august|october|december)[_\s\d]*$/i;
+            filename = filename.replace(monthRegex, '');
+            filename = filename.replace(/[_\s][0-9]{2,4}$/, '').trim();
+            
+            if (!filename) filename = 'TNC7 Partner';
+            const filenameFull = filename + '.jpg';
+
+            if (outputMode === 'image') {
+                const canvas = document.getElementById('canvas2');
+                
+                // MENGATUR RASIO 16:9 UNTUK GAMBAR OCR
+                const baseWidth = canvas.width;
+                const baseHeight = canvas.height;
+                let finalWidth = baseWidth;
+                let finalHeight = baseHeight;
+                
+                if (baseWidth / baseHeight < 16 / 9) {
+                    finalWidth = Math.ceil(baseHeight * (16 / 9));
+                } else {
+                    finalHeight = Math.ceil(baseWidth * (9 / 16));
+                }
+                
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = finalWidth;
+                tempCanvas.height = finalHeight;
+                const ctx = tempCanvas.getContext('2d');
+                
+                // Background putih untuk padding
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, finalWidth, finalHeight);
+                
+                // Posisikan gambar persis di tengah area 16:9
+                const offsetX = (finalWidth - baseWidth) / 2;
+                const offsetY = (finalHeight - baseHeight) / 2;
+                ctx.drawImage(canvas, offsetX, offsetY);
+                
+                tempCanvas.toBlob(async (blob) => {
+                    await saveFileHelper(blob, filenameFull);
+                    log(`> <span class="text-emerald-400 font-bold">Gambar JPG sukses disimpan!</span>`);
+                }, 'image/jpeg', 0.85);
+            } else if (outputMode === 'excel') {
+                const containerToCapture = document.getElementById('excelOutput');
+                
+                try {
+                    const printContainer = document.createElement('div');
+                    printContainer.style.position = 'absolute';
+                    printContainer.style.top = '-99999px';
+                    printContainer.style.left = '0';
+                    printContainer.style.backgroundColor = '#ffffff'; 
+                    
+                    const uiClone = containerToCapture.cloneNode(true);
+                    uiClone.classList.remove('hidden', 'absolute', 'inset-0', 'shadow-2xl', 'rounded-xl', 'border', 'border-[#107c41]/30', 'overflow-hidden');
+                    uiClone.style.transform = 'none';
+                    uiClone.style.position = 'relative';
+                    uiClone.style.display = 'flex';
+                    uiClone.style.flexDirection = 'column';
+                    uiClone.style.alignItems = 'stretch';
+                    uiClone.style.backgroundColor = '#ffffff';
+                    uiClone.style.overflow = 'hidden';
+                    
+                    // Paksa Header & Footer merentang penuh
+                    Array.from(uiClone.children).forEach(el => {
+                        if (el.classList.contains('bg-[#107c41]') || el.classList.contains('bg-[#f3f2f1]')) {
+                            el.style.width = '100%';
+                            el.style.minWidth = '100%';
+                            el.style.flexShrink = '0';
+                        }
+                    });
+                    
+                    const scrollArea = uiClone.querySelector('.overflow-auto') || uiClone.querySelector('.bg-white');
+                    if (scrollArea) {
+                        scrollArea.classList.remove('overflow-auto');
+                        scrollArea.style.overflow = 'hidden'; 
+                        scrollArea.style.flex = '1'; 
+                        scrollArea.style.backgroundColor = '#ffffff';
+                        scrollArea.style.display = 'flex';
+                        scrollArea.style.flexDirection = 'column';
+                        scrollArea.style.alignItems = 'center';
+                        scrollArea.style.justifyContent = 'flex-start'; // Menyelaraskan tabel ke atas
+                        scrollArea.style.paddingTop = '60px'; // Jarak tabel dari bar hijau
+                        scrollArea.style.width = '100%';
+                    }
+
+                    const tableClone = uiClone.querySelector('#excelPreviewTable');
+                    if (tableClone) {
+                        tableClone.style.fontFamily = "'Arial Black', 'Segoe UI Black', Arial, sans-serif"; 
+                        tableClone.style.borderCollapse = 'collapse';
+                        tableClone.style.width = 'max-content'; 
+                        tableClone.style.backgroundColor = '#ffffff';
+                        tableClone.style.textRendering = 'optimizeLegibility';
+                        tableClone.style.webkitFontSmoothing = 'antialiased';
+                        
+                        const rows = tableClone.querySelectorAll('tr');
+                        rows.forEach(row => { row.style.height = 'auto'; });
+                        const cells = tableClone.querySelectorAll('td, th');
+                        cells.forEach(cell => {
+                            cell.style.height = 'auto';
+                            cell.style.lineHeight = '1.4'; 
+                        });
+                    }
+
+                    printContainer.appendChild(uiClone);
+                    document.body.appendChild(printContainer);
+
+                    // MENGATUR RASIO 16:9
+                    const baseWidth = Math.max(800, tableClone ? tableClone.offsetWidth + 100 : 1920);
+                    const baseHeight = Math.max(600, tableClone ? tableClone.offsetHeight + 150 : 1080);
+                    
+                    let finalWidth = baseWidth;
+                    let finalHeight = baseHeight;
+                    
+                    // Cek apakah rasio saat ini < 16:9
+                    if (baseWidth / baseHeight < 16 / 9) {
+                        finalWidth = Math.ceil(baseHeight * (16 / 9));
+                    } else {
+                        finalHeight = Math.ceil(baseWidth * (9 / 16));
+                    }
+
+                    // Terapkan ukuran final
+                    printContainer.style.width = finalWidth + 'px';
+                    printContainer.style.height = finalHeight + 'px';
+                    uiClone.style.width = finalWidth + 'px';
+                    uiClone.style.height = finalHeight + 'px';
+                    uiClone.style.minWidth = finalWidth + 'px';
+                    uiClone.style.minHeight = finalHeight + 'px';
+
+                    const canvas = await html2canvas(printContainer, {
+                        backgroundColor: '#ffffff',
+                        scale: 2, 
+                        logging: false,
+                        useCORS: true,
+                        windowWidth: finalWidth,
+                        windowHeight: finalHeight,
+                        width: finalWidth,
+                        height: finalHeight
+                    });
+                    
+                    document.body.removeChild(printContainer);
+                    
+                    canvas.toBlob(async (blob) => {
+                        await saveFileHelper(blob, filenameFull);
+                        log(`> <span class="text-emerald-400 font-bold">Gambar JPG (Excel) sukses disimpan!</span>`);
+                    }, 'image/jpeg', 0.85);
+
+                } catch(err) {
+                    console.error(err);
+                    alert("Gagal mengunduh gambar.");
+                }
+            }
+        }
+
+        async function downloadExcelOutput() {
+            if (outputMode !== 'excel' || !currentExcelBlob) return;
+            
+            let filename = document.getElementById('filenameInput').value.trim();
+            if (!filename) filename = 'TNC7 Partner';
+            
+            filename = filename.replace(/Report\s*YT|Report_YT/gi, '').replace(/[()]/g, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+            if (!filename) filename = 'TNC7 Partner';
+
+            await saveFileHelper(currentExcelBlob, filename + '.xlsx');
+            log(`> <span class="text-emerald-400 font-bold">File Excel sukses disimpan: ${filename}.xlsx</span>`);
+        }
+
+        function adjustScale() {
+            if (outputMode !== 'excel') return;
+            
+            const wrapper = document.getElementById('excelOutputWrapper');
+            const content = document.getElementById('excelOutput');
+            const table = document.getElementById('excelPreviewTable');
+            if (!wrapper || !content || !table) return;
+            
+            const neededWidth = Math.max(800, table.scrollWidth + 100);
+            const neededHeight = Math.max(600, table.scrollHeight + 150);
+            
+            content.style.width = neededWidth + 'px';
+            content.style.height = neededHeight + 'px';
+            content.style.minWidth = neededWidth + 'px';
+            content.style.minHeight = neededHeight + 'px';
+
+            const wrapperRect = wrapper.getBoundingClientRect();
+            const scaleX = wrapperRect.width / neededWidth;
+            const scaleY = wrapperRect.height / neededHeight;
+            const scale = Math.min(scaleX, scaleY) * 0.95; 
+
+            content.style.transform = `scale(${scale})`;
+            content.style.transformOrigin = 'center';
+        }
+
+        window.addEventListener('resize', () => {
+            const wrapper = document.getElementById('excelOutputWrapper');
+            if (wrapper && !wrapper.classList.contains('hidden')) {
+                adjustScale();
+            }
+        });
+
+        // ----------------------------------------------------
+        // CLONE PROTECTION / DEV TOOLS PREVENTION
+        // ----------------------------------------------------
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            // Disable F12
+            if (e.key === 'F12' || e.keyCode === 123) {
+                e.preventDefault();
+            }
+            // Disable Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C
+            if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) {
+                e.preventDefault();
+            }
+            // Disable Ctrl+U (View Source)
+            if (e.ctrlKey && (e.key === 'U' || e.key === 'u')) {
+                e.preventDefault();
+            }
+            // Disable Ctrl+S (Save Page)
+            if (e.ctrlKey && (e.key === 'S' || e.key === 's')) {
+                e.preventDefault();
+            }
+            // Disable Ctrl+P (Print Page)
+            if (e.ctrlKey && (e.key === 'P' || e.key === 'p')) {
+                e.preventDefault();
+            }
+        });
+        
+        // Prevent Dragging of images to save them
+        document.addEventListener('dragstart', function(e) {
+            if(e.target.nodeName === 'IMG' || e.target.nodeName === 'CANVAS') {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
